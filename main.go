@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/koredeycode/rssagg/internal/database"
+	"github.com/koredeycode/dwelly/internal/database"
 	_ "github.com/lib/pq"
 )
 
@@ -36,6 +36,8 @@ func main() {
 	apiCfg := apiConfig{
 		DB: db,
 	}
+
+	router := setUpRouter(&apiCfg)
 
 	srv := &http.Server{
 		Handler: router,
