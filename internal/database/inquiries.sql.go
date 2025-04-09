@@ -38,6 +38,29 @@ func (q *Queries) CreateInquiry(ctx context.Context, arg CreateInquiryParams) (I
 	return i, err
 }
 
+const deleteInquiriesByListing = `-- name: DeleteInquiriesByListing :exec
+DELETE FROM inquiries WHERE listing_id = $1
+`
+
+func (q *Queries) DeleteInquiriesByListing(ctx context.Context, listingID uuid.NullUUID) error {
+	_, err := q.db.ExecContext(ctx, deleteInquiriesByListing, listingID)
+	return err
+}
+
+const deleteInquiry = `-- name: DeleteInquiry :exec
+DELETE FROM inquiries WHERE id = $1 AND sender_id = $2
+`
+
+type DeleteInquiryParams struct {
+	ID       uuid.UUID
+	SenderID uuid.NullUUID
+}
+
+func (q *Queries) DeleteInquiry(ctx context.Context, arg DeleteInquiryParams) error {
+	_, err := q.db.ExecContext(ctx, deleteInquiry, arg.ID, arg.SenderID)
+	return err
+}
+
 const getInquiriesByListing = `-- name: GetInquiriesByListing :many
 SELECT id, listing_id, sender_id, status, created_at, updated_at FROM inquiries WHERE listing_id = $1 ORDER BY created_at DESC
 `

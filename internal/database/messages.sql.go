@@ -11,6 +11,29 @@ import (
 	"github.com/google/uuid"
 )
 
+const deleteMessage = `-- name: DeleteMessage :exec
+DELETE FROM messages WHERE id = $1 AND sender_id = $2
+`
+
+type DeleteMessageParams struct {
+	ID       uuid.UUID
+	SenderID uuid.NullUUID
+}
+
+func (q *Queries) DeleteMessage(ctx context.Context, arg DeleteMessageParams) error {
+	_, err := q.db.ExecContext(ctx, deleteMessage, arg.ID, arg.SenderID)
+	return err
+}
+
+const deleteMessagesByInquiry = `-- name: DeleteMessagesByInquiry :exec
+DELETE FROM messages WHERE inquiry_id = $1
+`
+
+func (q *Queries) DeleteMessagesByInquiry(ctx context.Context, inquiryID uuid.NullUUID) error {
+	_, err := q.db.ExecContext(ctx, deleteMessagesByInquiry, inquiryID)
+	return err
+}
+
 const getMessagesByInquiry = `-- name: GetMessagesByInquiry :many
 SELECT id, inquiry_id, sender_id, content, created_at, updated_at FROM messages
 WHERE inquiry_id = $1

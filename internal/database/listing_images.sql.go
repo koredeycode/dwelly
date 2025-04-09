@@ -19,7 +19,7 @@ RETURNING id, listing_id, url
 
 type AddListingImageParams struct {
 	ID        uuid.UUID
-	ListingID uuid.NullUUID
+	ListingID uuid.UUID
 	Url       string
 }
 
@@ -30,11 +30,20 @@ func (q *Queries) AddListingImage(ctx context.Context, arg AddListingImageParams
 	return i, err
 }
 
+const deleteListingImageByID = `-- name: DeleteListingImageByID :exec
+DELETE FROM listing_images WHERE id = $1
+`
+
+func (q *Queries) DeleteListingImageByID(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteListingImageByID, id)
+	return err
+}
+
 const getListingImages = `-- name: GetListingImages :many
 SELECT id, listing_id, url FROM listing_images WHERE listing_id = $1
 `
 
-func (q *Queries) GetListingImages(ctx context.Context, listingID uuid.NullUUID) ([]ListingImage, error) {
+func (q *Queries) GetListingImages(ctx context.Context, listingID uuid.UUID) ([]ListingImage, error) {
 	rows, err := q.db.QueryContext(ctx, getListingImages, listingID)
 	if err != nil {
 		return nil, err

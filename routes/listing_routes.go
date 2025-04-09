@@ -16,6 +16,9 @@ func ListingRoutes(apiCfg *api.APIConfig) chi.Router {
 		r.Delete("/{listingId}", apiCfg.MiddlewareAuth(apiCfg.HandlerDeleteListing))
 		r.Patch("/{listingId}/status", apiCfg.MiddlewareAuth(apiCfg.HandlerUpdateListingStatus))
 		r.Post("/{listingId}/images", apiCfg.MiddlewareAuth(apiCfg.HandlerAddListingImage))
+
+		r.Post("/{listingId}/images/upload", apiCfg.MiddlewareAuth(apiCfg.HandlerUploadListingImages))
+
 		r.Delete("/images/{imageId}", apiCfg.MiddlewareAuth(apiCfg.HandlerDeleteListingImage))
 	})
 

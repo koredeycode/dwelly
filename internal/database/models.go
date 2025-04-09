@@ -35,7 +35,7 @@ type Listing struct {
 
 type ListingImage struct {
 	ID        uuid.UUID
-	ListingID uuid.NullUUID
+	ListingID uuid.UUID
 	Url       string
 }
 
