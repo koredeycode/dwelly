@@ -10,7 +10,7 @@ func StatusRoute(apiCfg *api.APIConfig) chi.Router {
 
 	r.Group(func(r chi.Router) {
 
-		r.Delete("/status", apiCfg.HandlerDeleteInquiryMessage)
+		r.Delete("/", apiCfg.MiddlewareAuth(apiCfg.HandlerDeleteInquiryMessage))
 	})
 
 	return r

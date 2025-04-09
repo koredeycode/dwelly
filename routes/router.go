@@ -4,9 +4,10 @@ import (
 	"github.com/go-chi/chi"
 
 	"github.com/go-chi/cors"
+	"github.com/koredeycode/dwelly/api"
 )
 
-func setUpRouter(apiCfg *apiConfig) *chi.Mux {
+func SetUpRouter(apiCfg *api.APIConfig) *chi.Mux {
 	router := chi.NewRouter()
 
 	router.Use(cors.Handler(cors.Options{
@@ -18,9 +19,9 @@ func setUpRouter(apiCfg *apiConfig) *chi.Mux {
 		MaxAge:           300,
 	}))
 
-	r.Route("/api/v1", func(api chi.Router) {
+	router.Route("/api/v1", func(api chi.Router) {
 		api.Mount("/auth", AuthRoutes(apiCfg))
-		api.Mount("status", StatusRoute(apiCfg))
+		api.Mount("/status", StatusRoute(apiCfg))
 		api.Mount("/users", UserRoutes(apiCfg))
 		api.Mount("/listings", ListingRoutes(apiCfg))
 		api.Mount("/inquiries", InquiryRoutes(apiCfg))
