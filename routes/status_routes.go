@@ -5,12 +5,12 @@ import (
 	"github.com/koredeycode/dwelly/api"
 )
 
-func MessageRoutes(apiCfg *api.APIConfig) chi.Router {
+func StatusRoute(apiCfg *api.APIConfig) chi.Router {
 	r := chi.NewRouter()
 
 	r.Group(func(r chi.Router) {
 
-		r.Delete("/{messageId}", apiCfg.HandlerDeleteInquiryMessage)
+		r.Delete("/status", apiCfg.HandlerDeleteInquiryMessage)
 	})
 
 	return r
