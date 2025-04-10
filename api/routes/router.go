@@ -4,10 +4,10 @@ import (
 	"github.com/go-chi/chi"
 
 	"github.com/go-chi/cors"
-	"github.com/koredeycode/dwelly/api"
+	"github.com/koredeycode/dwelly/api/handlers"
 )
 
-func SetUpRouter(apiCfg *api.APIConfig) *chi.Mux {
+func SetUpRouter(apiCfg *handlers.APIConfig) *chi.Mux {
 	router := chi.NewRouter()
 
 	router.Use(cors.Handler(cors.Options{

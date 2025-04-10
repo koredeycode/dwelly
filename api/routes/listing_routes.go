@@ -2,10 +2,10 @@ package routes
 
 import (
 	"github.com/go-chi/chi"
-	"github.com/koredeycode/dwelly/api"
+	"github.com/koredeycode/dwelly/api/handlers"
 )
 
-func ListingRoutes(apiCfg *api.APIConfig) chi.Router {
+func ListingRoutes(apiCfg *handlers.APIConfig) chi.Router {
 	r := chi.NewRouter()
 
 	r.Group(func(r chi.Router) {
