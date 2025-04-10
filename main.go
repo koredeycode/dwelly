@@ -7,9 +7,9 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/koredeycode/dwelly/api"
+	"github.com/koredeycode/dwelly/dwelly-api/handlers"
+	"github.com/koredeycode/dwelly/dwelly-api/routes"
 	"github.com/koredeycode/dwelly/internal/database"
-	"github.com/koredeycode/dwelly/routes"
 	_ "github.com/lib/pq"
 )
 
@@ -31,7 +31,7 @@ func main() {
 		log.Fatal("Error connecting to database:", err)
 	}
 	db := database.New(conn)
-	apiCfg := api.APIConfig{
+	apiCfg := handlers.APIConfig{
 		DB: db,
 	}
 

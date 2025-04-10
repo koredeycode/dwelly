@@ -4,7 +4,7 @@ import (
 	"github.com/go-chi/chi"
 
 	"github.com/go-chi/cors"
-	"github.com/koredeycode/dwelly/api/handlers"
+	"github.com/koredeycode/dwelly/dwelly-api/handlers"
 )
 
 func SetUpRouter(apiCfg *handlers.APIConfig) *chi.Mux {

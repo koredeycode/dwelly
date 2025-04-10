@@ -2,7 +2,7 @@ package routes
 
 import (
 	"github.com/go-chi/chi"
-	"github.com/koredeycode/dwelly/api/handlers"
+	"github.com/koredeycode/dwelly/dwelly-api/handlers"
 )
 
 func AuthRoutes(apiCfg *handlers.APIConfig) chi.Router {
