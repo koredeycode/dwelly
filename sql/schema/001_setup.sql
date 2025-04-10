@@ -6,23 +6,24 @@ CREATE TABLE users (
   name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 
 );
 
 CREATE TABLE listings (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
   intent TEXT NOT NULL, -- 'buy', 'rent', 'sell', 'lease'
   title TEXT NOT NULL,
-  description TEXT,
-  price_range TEXT, -- e.g., "100k - 150k", flexible for search
+  description TEXT NOT NULL,
+  price NUMERIC(10, 2) NOT NULL,
   location TEXT NOT NULL,
   category TEXT NOT NULL, -- e.g., apartment, house, land
-  status TEXT DEFAULT 'active', -- 'active', 'negotiation', 'completed'
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
+  status TEXT DEFAULT 'active' NOT NULL, -- 'active', 'negotiation', 'completed'
+
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE listing_images (
@@ -33,20 +34,20 @@ CREATE TABLE listing_images (
 
 CREATE TABLE inquiries (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  listing_id UUID REFERENCES listings(id) ON DELETE CASCADE,
-  sender_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  status TEXT DEFAULT 'open', -- 'open', 'negotiating', 'resolved', 'closed'
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
+  listing_id UUID REFERENCES listings(id) ON DELETE CASCADE NOT NULL,
+  sender_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+  status TEXT DEFAULT 'open' NOT NULL, -- 'open', 'negotiating', 'resolved', 'closed'
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE messages (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  inquiry_id UUID REFERENCES inquiries(id) ON DELETE CASCADE,
-  sender_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  inquiry_id UUID REFERENCES inquiries(id) ON DELETE CASCADE NOT NULL,
+  sender_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
   content TEXT NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 -- +goose Down

@@ -14,4 +14,5 @@ require (
 require (
 	github.com/creasty/defaults v1.7.0 // indirect
 	github.com/gorilla/schema v1.4.1 // indirect
+	golang.org/x/crypto v0.37.0 // indirect
 )

@@ -2,11 +2,10 @@ package handlers
 
 import (
 	"net/http"
-
-	"github.com/koredeycode/dwelly/internal/database"
 )
 
-func (api *APIConfig) HandlerAPIStatus(w http.ResponseWriter, r *http.Request, user database.User) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("API is running"))
+func (api *APIConfig) HandlerAPIStatus(w http.ResponseWriter, r *http.Request) {
+	respondWithJSON(w, http.StatusOK, map[string]string{
+		"status": "ok",
+	})
 }

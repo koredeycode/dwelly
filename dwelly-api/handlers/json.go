@@ -2,26 +2,24 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 )
 
-func respondWithError(w http.ResponseWriter, code int, message string) {
-	if code > 499 {
-		log.Println("responding with 5xx error: ", message)
+type errorResponse struct {
+	Error string `json:"error"`
+}
 
-	}
-	type errorResponse struct {
-		Error string `json:"error"`
-	}
+func respondWithError(w http.ResponseWriter, code int, message string) {
 	respondWithJSON(w, code, errorResponse{Error: message})
 }
 
 func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	dat, err := json.Marshal(payload)
 	if err != nil {
-		log.Printf("failed to marshal json response: %v", payload)
-		w.WriteHeader(500)
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		errorJSON, _ := json.Marshal(errorResponse{Error: "failed to marshal json response"})
+		w.Write(errorJSON)
 		return
 	}
 	w.Header().Add("Content-Type", "application/json")

@@ -8,10 +8,7 @@ import (
 func StatusRoute(apiCfg *handlers.APIConfig) chi.Router {
 	r := chi.NewRouter()
 
-	r.Group(func(r chi.Router) {
-
-		r.Delete("/", apiCfg.MiddlewareAuth(apiCfg.HandlerDeleteInquiryMessage))
-	})
+	r.Get("/", apiCfg.HandlerAPIStatus)
 
 	return r
 }

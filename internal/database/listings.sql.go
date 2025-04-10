@@ -8,23 +8,24 @@ package database
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 const createListing = `-- name: CreateListing :one
-INSERT INTO listings (id, user_id, intent, title, description, price_range, location, category)
+INSERT INTO listings (id, user_id, intent, title, description, price, location, category)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, user_id, intent, title, description, price_range, location, category, status, created_at, updated_at
+RETURNING id, user_id, intent, title, description, price, location, category, status, created_at, updated_at
 `
 
 type CreateListingParams struct {
 	ID          uuid.UUID
-	UserID      uuid.NullUUID
+	UserID      uuid.UUID
 	Intent      string
 	Title       string
-	Description sql.NullString
-	PriceRange  sql.NullString
+	Description string
+	Price       string
 	Location    string
 	Category    string
 }
@@ -36,7 +37,7 @@ func (q *Queries) CreateListing(ctx context.Context, arg CreateListingParams) (L
 		arg.Intent,
 		arg.Title,
 		arg.Description,
-		arg.PriceRange,
+		arg.Price,
 		arg.Location,
 		arg.Category,
 	)
@@ -47,7 +48,7 @@ func (q *Queries) CreateListing(ctx context.Context, arg CreateListingParams) (L
 		&i.Intent,
 		&i.Title,
 		&i.Description,
-		&i.PriceRange,
+		&i.Price,
 		&i.Location,
 		&i.Category,
 		&i.Status,
@@ -58,30 +59,54 @@ func (q *Queries) CreateListing(ctx context.Context, arg CreateListingParams) (L
 }
 
 const getListingByID = `-- name: GetListingByID :one
-SELECT id, user_id, intent, title, description, price_range, location, category, status, created_at, updated_at FROM listings WHERE id = $1
+SELECT listings.id, listings.user_id, listings.intent, listings.title, listings.description, listings.price, listings.location, listings.category, listings.status, listings.created_at, listings.updated_at, listing_images.url FROM
+listings 
+LEFT JOIN listing_images ON listings.id = listing_images.listing_id
+WHERE listings.id = $1
 `
 
-func (q *Queries) GetListingByID(ctx context.Context, id uuid.UUID) (Listing, error) {
+type GetListingByIDRow struct {
+	ID          uuid.UUID
+	UserID      uuid.UUID
+	Intent      string
+	Title       string
+	Description string
+	Price       string
+	Location    string
+	Category    string
+	Status      string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	Url         sql.NullString
+}
+
+func (q *Queries) GetListingByID(ctx context.Context, id uuid.UUID) (GetListingByIDRow, error) {
 	row := q.db.QueryRowContext(ctx, getListingByID, id)
-	var i Listing
+	var i GetListingByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.Intent,
 		&i.Title,
 		&i.Description,
-		&i.PriceRange,
+		&i.Price,
 		&i.Location,
 		&i.Category,
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Url,
 	)
 	return i, err
 }
 
 const listAllListings = `-- name: ListAllListings :many
-SELECT id, user_id, intent, title, description, price_range, location, category, status, created_at, updated_at FROM listings WHERE status = 'active' ORDER BY created_at DESC LIMIT $1 OFFSET $2
+SELECT listings.id, listings.user_id, listings.intent, listings.title, listings.description, listings.price, listings.location, listings.category, listings.status, listings.created_at, listings.updated_at, listing_images.url
+FROM listings
+LEFT JOIN listing_images ON listings.id = images.listing_id
+WHERE listings.status = 'active'
+ORDER BY listings.created_at DESC
+LIMIT $1 OFFSET $2
 `
 
 type ListAllListingsParams struct {
@@ -89,27 +114,43 @@ type ListAllListingsParams struct {
 	Offset int32
 }
 
-func (q *Queries) ListAllListings(ctx context.Context, arg ListAllListingsParams) ([]Listing, error) {
+type ListAllListingsRow struct {
+	ID          uuid.UUID
+	UserID      uuid.UUID
+	Intent      string
+	Title       string
+	Description string
+	Price       string
+	Location    string
+	Category    string
+	Status      string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	Url         sql.NullString
+}
+
+func (q *Queries) ListAllListings(ctx context.Context, arg ListAllListingsParams) ([]ListAllListingsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listAllListings, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Listing
+	var items []ListAllListingsRow
 	for rows.Next() {
-		var i Listing
+		var i ListAllListingsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
 			&i.Intent,
 			&i.Title,
 			&i.Description,
-			&i.PriceRange,
+			&i.Price,
 			&i.Location,
 			&i.Category,
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Url,
 		); err != nil {
 			return nil, err
 		}
@@ -125,30 +166,50 @@ func (q *Queries) ListAllListings(ctx context.Context, arg ListAllListingsParams
 }
 
 const listUserListings = `-- name: ListUserListings :many
-SELECT id, user_id, intent, title, description, price_range, location, category, status, created_at, updated_at FROM listings WHERE user_id = $1 ORDER BY created_at DESC
+SELECT listings.id, listings.user_id, listings.intent, listings.title, listings.description, listings.price, listings.location, listings.category, listings.status, listings.created_at, listings.updated_at, listing_images.url FROM
+listings
+LEFT JOIN listing_images ON listings.id = listing_images.listing_id
+WHERE listings.user_id = $1
+ORDER BY listings.created_at DESC
 `
 
-func (q *Queries) ListUserListings(ctx context.Context, userID uuid.NullUUID) ([]Listing, error) {
+type ListUserListingsRow struct {
+	ID          uuid.UUID
+	UserID      uuid.UUID
+	Intent      string
+	Title       string
+	Description string
+	Price       string
+	Location    string
+	Category    string
+	Status      string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	Url         sql.NullString
+}
+
+func (q *Queries) ListUserListings(ctx context.Context, userID uuid.UUID) ([]ListUserListingsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listUserListings, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Listing
+	var items []ListUserListingsRow
 	for rows.Next() {
-		var i Listing
+		var i ListUserListingsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
 			&i.Intent,
 			&i.Title,
 			&i.Description,
-			&i.PriceRange,
+			&i.Price,
 			&i.Location,
 			&i.Category,
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Url,
 		); err != nil {
 			return nil, err
 		}
@@ -164,12 +225,14 @@ func (q *Queries) ListUserListings(ctx context.Context, userID uuid.NullUUID) ([
 }
 
 const searchListings = `-- name: SearchListings :many
-SELECT id, user_id, intent, title, description, price_range, location, category, status, created_at, updated_at FROM listings
-WHERE location ILIKE '%' || $1 || '%'
-  AND category = $2
-  AND intent = $3
-  AND status = 'active'
-ORDER BY created_at DESC
+SELECT listings.id, listings.user_id, listings.intent, listings.title, listings.description, listings.price, listings.location, listings.category, listings.status, listings.created_at, listings.updated_at, listing_images.url
+FROM listings
+LEFT JOIN listing_images ON listings.id = images.listing_id
+WHERE listings.location ILIKE '%' || $1 || '%'
+  AND listings.category = $2
+  AND listings.intent = $3
+  AND listings.status = 'active'
+ORDER BY listings.created_at DESC
 `
 
 type SearchListingsParams struct {
@@ -178,27 +241,43 @@ type SearchListingsParams struct {
 	Intent   string
 }
 
-func (q *Queries) SearchListings(ctx context.Context, arg SearchListingsParams) ([]Listing, error) {
+type SearchListingsRow struct {
+	ID          uuid.UUID
+	UserID      uuid.UUID
+	Intent      string
+	Title       string
+	Description string
+	Price       string
+	Location    string
+	Category    string
+	Status      string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	Url         sql.NullString
+}
+
+func (q *Queries) SearchListings(ctx context.Context, arg SearchListingsParams) ([]SearchListingsRow, error) {
 	rows, err := q.db.QueryContext(ctx, searchListings, arg.Column1, arg.Category, arg.Intent)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Listing
+	var items []SearchListingsRow
 	for rows.Next() {
-		var i Listing
+		var i SearchListingsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
 			&i.Intent,
 			&i.Title,
 			&i.Description,
-			&i.PriceRange,
+			&i.Price,
 			&i.Location,
 			&i.Category,
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Url,
 		); err != nil {
 			return nil, err
 		}
@@ -219,7 +298,7 @@ UPDATE listings SET status = $2 WHERE id = $1
 
 type UpdateListingStatusParams struct {
 	ID     uuid.UUID
-	Status sql.NullString
+	Status string
 }
 
 func (q *Queries) UpdateListingStatus(ctx context.Context, arg UpdateListingStatusParams) error {

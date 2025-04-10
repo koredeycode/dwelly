@@ -8,6 +8,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -20,8 +21,8 @@ RETURNING id, listing_id, sender_id, status, created_at, updated_at
 
 type CreateInquiryParams struct {
 	ID        uuid.UUID
-	ListingID uuid.NullUUID
-	SenderID  uuid.NullUUID
+	ListingID uuid.UUID
+	SenderID  uuid.UUID
 }
 
 func (q *Queries) CreateInquiry(ctx context.Context, arg CreateInquiryParams) (Inquiry, error) {
@@ -42,7 +43,7 @@ const deleteInquiriesByListing = `-- name: DeleteInquiriesByListing :exec
 DELETE FROM inquiries WHERE listing_id = $1
 `
 
-func (q *Queries) DeleteInquiriesByListing(ctx context.Context, listingID uuid.NullUUID) error {
+func (q *Queries) DeleteInquiriesByListing(ctx context.Context, listingID uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deleteInquiriesByListing, listingID)
 	return err
 }
@@ -53,7 +54,7 @@ DELETE FROM inquiries WHERE id = $1 AND sender_id = $2
 
 type DeleteInquiryParams struct {
 	ID       uuid.UUID
-	SenderID uuid.NullUUID
+	SenderID uuid.UUID
 }
 
 func (q *Queries) DeleteInquiry(ctx context.Context, arg DeleteInquiryParams) error {
@@ -65,7 +66,7 @@ const getInquiriesByListing = `-- name: GetInquiriesByListing :many
 SELECT id, listing_id, sender_id, status, created_at, updated_at FROM inquiries WHERE listing_id = $1 ORDER BY created_at DESC
 `
 
-func (q *Queries) GetInquiriesByListing(ctx context.Context, listingID uuid.NullUUID) ([]Inquiry, error) {
+func (q *Queries) GetInquiriesByListing(ctx context.Context, listingID uuid.UUID) ([]Inquiry, error) {
 	rows, err := q.db.QueryContext(ctx, getInquiriesByListing, listingID)
 	if err != nil {
 		return nil, err
@@ -99,7 +100,7 @@ const getInquiriesByUser = `-- name: GetInquiriesByUser :many
 SELECT id, listing_id, sender_id, status, created_at, updated_at FROM inquiries WHERE sender_id = $1 ORDER BY created_at DESC
 `
 
-func (q *Queries) GetInquiriesByUser(ctx context.Context, senderID uuid.NullUUID) ([]Inquiry, error) {
+func (q *Queries) GetInquiriesByUser(ctx context.Context, senderID uuid.UUID) ([]Inquiry, error) {
 	rows, err := q.db.QueryContext(ctx, getInquiriesByUser, senderID)
 	if err != nil {
 		return nil, err
@@ -129,13 +130,51 @@ func (q *Queries) GetInquiriesByUser(ctx context.Context, senderID uuid.NullUUID
 	return items, nil
 }
 
+const getInquiryByIDWithMessages = `-- name: GetInquiryByIDWithMessages :one
+SELECT inquiries.id, inquiries.listing_id, inquiries.sender_id, inquiries.status, inquiries.created_at, inquiries.updated_at, messages.id AS message_id, messages.content AS message_content, messages.sender_id AS message_sender_id, messages.created_at AS message_created_at
+FROM inquiries
+LEFT JOIN messages ON inquiries.id = messages.inquiry_id
+WHERE inquiries.id = $1
+`
+
+type GetInquiryByIDWithMessagesRow struct {
+	ID               uuid.UUID
+	ListingID        uuid.UUID
+	SenderID         uuid.UUID
+	Status           string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	MessageID        uuid.NullUUID
+	MessageContent   sql.NullString
+	MessageSenderID  uuid.NullUUID
+	MessageCreatedAt sql.NullTime
+}
+
+func (q *Queries) GetInquiryByIDWithMessages(ctx context.Context, id uuid.UUID) (GetInquiryByIDWithMessagesRow, error) {
+	row := q.db.QueryRowContext(ctx, getInquiryByIDWithMessages, id)
+	var i GetInquiryByIDWithMessagesRow
+	err := row.Scan(
+		&i.ID,
+		&i.ListingID,
+		&i.SenderID,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.MessageID,
+		&i.MessageContent,
+		&i.MessageSenderID,
+		&i.MessageCreatedAt,
+	)
+	return i, err
+}
+
 const updateInquiryStatus = `-- name: UpdateInquiryStatus :exec
 UPDATE inquiries SET status = $2 WHERE id = $1
 `
 
 type UpdateInquiryStatusParams struct {
 	ID     uuid.UUID
-	Status sql.NullString
+	Status string
 }
 
 func (q *Queries) UpdateInquiryStatus(ctx context.Context, arg UpdateInquiryStatusParams) error {

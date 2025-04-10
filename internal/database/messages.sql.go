@@ -17,7 +17,7 @@ DELETE FROM messages WHERE id = $1 AND sender_id = $2
 
 type DeleteMessageParams struct {
 	ID       uuid.UUID
-	SenderID uuid.NullUUID
+	SenderID uuid.UUID
 }
 
 func (q *Queries) DeleteMessage(ctx context.Context, arg DeleteMessageParams) error {
@@ -29,7 +29,7 @@ const deleteMessagesByInquiry = `-- name: DeleteMessagesByInquiry :exec
 DELETE FROM messages WHERE inquiry_id = $1
 `
 
-func (q *Queries) DeleteMessagesByInquiry(ctx context.Context, inquiryID uuid.NullUUID) error {
+func (q *Queries) DeleteMessagesByInquiry(ctx context.Context, inquiryID uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deleteMessagesByInquiry, inquiryID)
 	return err
 }
@@ -40,7 +40,7 @@ WHERE inquiry_id = $1
 ORDER BY created_at ASC
 `
 
-func (q *Queries) GetMessagesByInquiry(ctx context.Context, inquiryID uuid.NullUUID) ([]Message, error) {
+func (q *Queries) GetMessagesByInquiry(ctx context.Context, inquiryID uuid.UUID) ([]Message, error) {
 	rows, err := q.db.QueryContext(ctx, getMessagesByInquiry, inquiryID)
 	if err != nil {
 		return nil, err
@@ -78,8 +78,8 @@ RETURNING id, inquiry_id, sender_id, content, created_at, updated_at
 
 type SendMessageParams struct {
 	ID        uuid.UUID
-	InquiryID uuid.NullUUID
-	SenderID  uuid.NullUUID
+	InquiryID uuid.UUID
+	SenderID  uuid.UUID
 	Content   string
 }
 

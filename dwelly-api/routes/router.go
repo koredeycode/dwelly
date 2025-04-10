@@ -1,6 +1,9 @@
 package routes
 
 import (
+	"log"
+	"net/http"
+
 	"github.com/go-chi/chi"
 
 	"github.com/go-chi/cors"
@@ -18,6 +21,13 @@ func SetUpRouter(apiCfg *handlers.APIConfig) *chi.Mux {
 		AllowCredentials: false,
 		MaxAge:           300,
 	}))
+
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			log.Printf("%s %s\n", r.Method, r.URL.Path)
+			next.ServeHTTP(w, r)
+		})
+	})
 
 	router.Route("/api/v1", func(api chi.Router) {
 		api.Mount("/auth", AuthRoutes(apiCfg))

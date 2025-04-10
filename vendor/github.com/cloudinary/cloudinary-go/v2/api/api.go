@@ -1,13 +1,14 @@
-// package handlers contains packages used for accessing Cloudinary API functionality.
+// Package api contains packages used for accessing Cloudinary API functionality.
 //
 // https://cloudinary.com/documentation/cloudinary_references
-package handlers
+package api
 
 import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/cloudinary/cloudinary-go/v2/internal/signature"
 	"io"
 	"log"
 	"net/url"
@@ -17,8 +18,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/cloudinary/cloudinary-go/v2/internal/signature"
 )
 
 // EndPoint represents the API endpoint.

@@ -5,32 +5,32 @@
 package database
 
 import (
-	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 type Inquiry struct {
 	ID        uuid.UUID
-	ListingID uuid.NullUUID
-	SenderID  uuid.NullUUID
-	Status    sql.NullString
-	CreatedAt sql.NullTime
-	UpdatedAt sql.NullTime
+	ListingID uuid.UUID
+	SenderID  uuid.UUID
+	Status    string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type Listing struct {
 	ID          uuid.UUID
-	UserID      uuid.NullUUID
+	UserID      uuid.UUID
 	Intent      string
 	Title       string
-	Description sql.NullString
-	PriceRange  sql.NullString
+	Description string
+	Price       string
 	Location    string
 	Category    string
-	Status      sql.NullString
-	CreatedAt   sql.NullTime
-	UpdatedAt   sql.NullTime
+	Status      string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 type ListingImage struct {
@@ -41,11 +41,11 @@ type ListingImage struct {
 
 type Message struct {
 	ID        uuid.UUID
-	InquiryID uuid.NullUUID
-	SenderID  uuid.NullUUID
+	InquiryID uuid.UUID
+	SenderID  uuid.UUID
 	Content   string
-	CreatedAt sql.NullTime
-	UpdatedAt sql.NullTime
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type User struct {
@@ -53,6 +53,6 @@ type User struct {
 	Name         string
 	Email        string
 	PasswordHash string
-	CreatedAt    sql.NullTime
-	UpdatedAt    sql.NullTime
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
