@@ -14,8 +14,8 @@ import (
 )
 
 const createListing = `-- name: CreateListing :one
-INSERT INTO listings (id, user_id, intent, title, description, price, location, category)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO listings (id, user_id, intent, title, description, price, location, category, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 RETURNING id, user_id, intent, title, description, price, location, category, status, created_at, updated_at
 `
 
@@ -28,6 +28,8 @@ type CreateListingParams struct {
 	Price       string
 	Location    string
 	Category    string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 func (q *Queries) CreateListing(ctx context.Context, arg CreateListingParams) (Listing, error) {
@@ -40,6 +42,8 @@ func (q *Queries) CreateListing(ctx context.Context, arg CreateListingParams) (L
 		arg.Price,
 		arg.Location,
 		arg.Category,
+		arg.CreatedAt,
+		arg.UpdatedAt,
 	)
 	var i Listing
 	err := row.Scan(

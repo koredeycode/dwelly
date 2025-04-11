@@ -7,13 +7,14 @@ package database
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (id, name, email, password_hash)
-VALUES ($1, $2, $3, $4)
+INSERT INTO users (id, name, email, password_hash, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING id, name, email, password_hash, created_at, updated_at
 `
 
@@ -22,6 +23,8 @@ type CreateUserParams struct {
 	Name         string
 	Email        string
 	PasswordHash string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -30,6 +33,8 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.Name,
 		arg.Email,
 		arg.PasswordHash,
+		arg.CreatedAt,
+		arg.UpdatedAt,
 	)
 	var i User
 	err := row.Scan(

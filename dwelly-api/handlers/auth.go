@@ -12,7 +12,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (api *APIConfig) HandlerRegisterUser(w http.ResponseWriter, r *http.Request) {
+func (cfg *APIConfig) HandlerRegisterUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Name     string `json:"name"`
 		Password string `json:"password"`
@@ -33,7 +33,7 @@ func (api *APIConfig) HandlerRegisterUser(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	user, err := api.DB.CreateUser(r.Context(), database.CreateUserParams{
+	user, err := cfg.DB.CreateUser(r.Context(), database.CreateUserParams{
 		ID:           uuid.New(),
 		Name:         params.Name,
 		Email:        params.Email,
@@ -47,7 +47,7 @@ func (api *APIConfig) HandlerRegisterUser(w http.ResponseWriter, r *http.Request
 	respondWithJSON(w, http.StatusCreated, models.DatabaseUsertoUser(user))
 }
 
-func (api *APIConfig) HandlerLoginUser(w http.ResponseWriter, r *http.Request) {
+func (cfg *APIConfig) HandlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Password string `json:"password"`
 		Email    string `json:"email"`
@@ -61,7 +61,7 @@ func (api *APIConfig) HandlerLoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := api.DB.GetUserByEmail(r.Context(), params.Email)
+	user, err := cfg.DB.GetUserByEmail(r.Context(), params.Email)
 	if err != nil {
 		respondWithError(w, http.StatusForbidden, "User email doesn't exist")
 		return

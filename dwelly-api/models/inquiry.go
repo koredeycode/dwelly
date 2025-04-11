@@ -4,8 +4,16 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koredeycode/dwelly/internal/database"
 )
+
+type InquiryLike interface {
+	GetID() uuid.UUID
+	GetCreatedAt() time.Time
+	GetUpdatedAt() time.Time
+	GetListingID() uuid.UUID
+	GetSenderID() uuid.UUID
+	GetStatus() string
+}
 
 type Inquiry struct {
 	ID        uuid.UUID `json:"id"`
@@ -14,22 +22,24 @@ type Inquiry struct {
 	ListingID uuid.UUID `json:"listing_id"`
 	SenderID  uuid.UUID `json:"sender_id"`
 	Status    string    `json:"status"`
+
+	Messages []Message `json:"messages"`
 }
 
-func DatabaseInquirytoInquiry(dbInquiry database.Inquiry) Inquiry {
+func DatabaseInquirytoInquiry[T InquiryLike](i T) Inquiry {
 	return Inquiry{
-		ID:        dbInquiry.ID,
-		CreatedAt: dbInquiry.CreatedAt,
-		UpdatedAt: dbInquiry.UpdatedAt,
-		ListingID: dbInquiry.ListingID,
-		SenderID:  dbInquiry.SenderID,
-		Status:    dbInquiry.Status,
+		ID:        i.GetID(),
+		CreatedAt: i.GetCreatedAt(),
+		UpdatedAt: i.GetUpdatedAt(),
+		ListingID: i.GetListingID(),
+		SenderID:  i.GetSenderID(),
+		Status:    i.GetStatus(),
 	}
 }
 
-func DatabaseInquiriestoInquiries(dbInquirys []database.Inquiry) []Inquiry {
-	inquiries := make([]Inquiry, len(dbInquirys))
-	for i, inquiry := range dbInquirys {
+func DatabaseInquiriestoInquiries[T InquiryLike](is []T) []Inquiry {
+	inquiries := make([]Inquiry, len(is))
+	for i, inquiry := range is {
 		inquiries[i] = DatabaseInquirytoInquiry(inquiry)
 	}
 	return inquiries

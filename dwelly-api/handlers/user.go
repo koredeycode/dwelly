@@ -7,6 +7,6 @@ import (
 	"github.com/koredeycode/dwelly/internal/database"
 )
 
-func (api *APIConfig) HandlerGetUser(w http.ResponseWriter, r *http.Request, user database.User) {
+func (cfg *APIConfig) HandlerGetUser(w http.ResponseWriter, r *http.Request, user database.User) {
 	respondWithJSON(w, http.StatusOK, models.DatabaseUsertoUser(user))
 }

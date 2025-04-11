@@ -1,44 +1,100 @@
 package handlers
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
+	"github.com/koredeycode/dwelly/dwelly-api/models"
 	cloudinaryutil "github.com/koredeycode/dwelly/internal/cloudinary"
 	"github.com/koredeycode/dwelly/internal/database"
 )
 
-func (api *APIConfig) HandlerCreateListing(w http.ResponseWriter, r *http.Request, user database.User) {
-	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte("Listing created"))
+func (cfg *APIConfig) HandlerCreateListing(w http.ResponseWriter, r *http.Request, user database.User) {
+	type parameters struct {
+		Intent      string `json:"intent"`
+		Title       string `json:"title"`
+		Description string `json:"description"`
+		Price       string `json:"price"`
+		Location    string `json:"location"`
+		Category    string `json:"category"`
+	}
+	decoder := json.NewDecoder(r.Body)
+
+	params := parameters{}
+
+	err := decoder.Decode(&params)
+
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("error parsing json: %v", err))
+		return
+	}
+	listing, err := cfg.DB.CreateListing(r.Context(), database.CreateListingParams{
+		ID:          uuid.New(),
+		CreatedAt:   time.Now().UTC(),
+		UpdatedAt:   time.Now().UTC(),
+		UserID:      user.ID,
+		Intent:      params.Intent,
+		Title:       params.Title,
+		Description: params.Description,
+		Price:       params.Price,
+		Location:    params.Location,
+		Category:    params.Category,
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error creating listing: %v", err))
+		return
+	}
+
+	respondWithJSON(w, http.StatusCreated, models.DatabaseListingtoListing(listing))
+
 }
 
-func (api *APIConfig) HandlerGetListing(w http.ResponseWriter, r *http.Request, user database.User) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Get listing"))
+func (cfg *APIConfig) HandlerGetListing(w http.ResponseWriter, r *http.Request, user database.User) {
+	listingIDStr := chi.URLParam(r, "listingId")
+	if listingIDStr == "" {
+		respondWithError(w, http.StatusBadRequest, "missing listing ID")
+		return
+	}
+
+	listingId, err := uuid.Parse(listingIDStr)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid listing ID")
+		return
+	}
+
+	listing, err := cfg.DB.GetListingByID(r.Context(), listingId)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error getting listing: %v", err))
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, models.DatabaseListingtoListing(listing))
 }
 
-func (api *APIConfig) HandlerGetListings(w http.ResponseWriter, r *http.Request, user database.User) {
+func (cfg *APIConfig) HandlerGetListings(w http.ResponseWriter, r *http.Request, user database.User) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("List of listings"))
 }
 
-func (api *APIConfig) HandlerUpdateListing(w http.ResponseWriter, r *http.Request, user database.User) {
+func (cfg *APIConfig) HandlerUpdateListing(w http.ResponseWriter, r *http.Request, user database.User) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Listing updated"))
 }
 
-func (api *APIConfig) HandlerDeleteListing(w http.ResponseWriter, r *http.Request, user database.User) {
+func (cfg *APIConfig) HandlerDeleteListing(w http.ResponseWriter, r *http.Request, user database.User) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (api *APIConfig) HandlerUpdateListingStatus(w http.ResponseWriter, r *http.Request, user database.User) {
+func (cfg *APIConfig) HandlerUpdateListingStatus(w http.ResponseWriter, r *http.Request, user database.User) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Listing status updated"))
 }
-func (api *APIConfig) HandlerUploadListingImages(w http.ResponseWriter, r *http.Request, user database.User) {
+func (cfg *APIConfig) HandlerUploadListingImages(w http.ResponseWriter, r *http.Request, user database.User) {
 
 	// Get all files uploaded for "file" field (could be multiple)
 	files := r.MultipartForm.File["file"]
@@ -80,7 +136,7 @@ func (api *APIConfig) HandlerUploadListingImages(w http.ResponseWriter, r *http.
 			return
 		}
 		imageURL := uploadResp.SecureURL
-		_, err = api.DB.AddListingImage(r.Context(), database.AddListingImageParams{
+		_, err = cfg.DB.AddListingImage(r.Context(), database.AddListingImageParams{
 			ID:        uuid.New(),
 			ListingID: listingID,
 			Url:       imageURL,

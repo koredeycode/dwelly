@@ -37,6 +37,8 @@ type ListingImage struct {
 	ID        uuid.UUID
 	ListingID uuid.UUID
 	Url       string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type Message struct {

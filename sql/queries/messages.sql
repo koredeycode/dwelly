@@ -1,6 +1,6 @@
 -- name: SendMessage :one
-INSERT INTO messages (id, inquiry_id, sender_id, content)
-VALUES ($1, $2, $3, $4)
+INSERT INTO messages (id, inquiry_id, sender_id, content, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
 -- name: GetMessagesByInquiry :many

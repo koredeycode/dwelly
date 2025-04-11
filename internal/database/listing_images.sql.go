@@ -7,26 +7,41 @@ package database
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 const addListingImage = `-- name: AddListingImage :one
-INSERT INTO listing_images (id, listing_id, url)
-VALUES ($1, $2, $3)
-RETURNING id, listing_id, url
+INSERT INTO listing_images (id, listing_id, url, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, listing_id, url, created_at, updated_at
 `
 
 type AddListingImageParams struct {
 	ID        uuid.UUID
 	ListingID uuid.UUID
 	Url       string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func (q *Queries) AddListingImage(ctx context.Context, arg AddListingImageParams) (ListingImage, error) {
-	row := q.db.QueryRowContext(ctx, addListingImage, arg.ID, arg.ListingID, arg.Url)
+	row := q.db.QueryRowContext(ctx, addListingImage,
+		arg.ID,
+		arg.ListingID,
+		arg.Url,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
 	var i ListingImage
-	err := row.Scan(&i.ID, &i.ListingID, &i.Url)
+	err := row.Scan(
+		&i.ID,
+		&i.ListingID,
+		&i.Url,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
 	return i, err
 }
 
@@ -40,7 +55,7 @@ func (q *Queries) DeleteListingImageByID(ctx context.Context, id uuid.UUID) erro
 }
 
 const getListingImages = `-- name: GetListingImages :many
-SELECT id, listing_id, url FROM listing_images WHERE listing_id = $1
+SELECT id, listing_id, url, created_at, updated_at FROM listing_images WHERE listing_id = $1
 `
 
 func (q *Queries) GetListingImages(ctx context.Context, listingID uuid.UUID) ([]ListingImage, error) {
@@ -52,7 +67,13 @@ func (q *Queries) GetListingImages(ctx context.Context, listingID uuid.UUID) ([]
 	var items []ListingImage
 	for rows.Next() {
 		var i ListingImage
-		if err := rows.Scan(&i.ID, &i.ListingID, &i.Url); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.ListingID,
+			&i.Url,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

@@ -29,7 +29,11 @@ CREATE TABLE listings (
 CREATE TABLE listing_images (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
-  url TEXT NOT NULL
+  url TEXT NOT NULL,
+
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+
 );
 
 CREATE TABLE inquiries (

@@ -1,6 +1,6 @@
 -- name: CreateListing :one
-INSERT INTO listings (id, user_id, intent, title, description, price, location, category)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO listings (id, user_id, intent, title, description, price, location, category, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 RETURNING *;
 
 -- name: GetListingByID :one

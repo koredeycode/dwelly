@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -71,8 +72,8 @@ func (q *Queries) GetMessagesByInquiry(ctx context.Context, inquiryID uuid.UUID)
 }
 
 const sendMessage = `-- name: SendMessage :one
-INSERT INTO messages (id, inquiry_id, sender_id, content)
-VALUES ($1, $2, $3, $4)
+INSERT INTO messages (id, inquiry_id, sender_id, content, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING id, inquiry_id, sender_id, content, created_at, updated_at
 `
 
@@ -81,6 +82,8 @@ type SendMessageParams struct {
 	InquiryID uuid.UUID
 	SenderID  uuid.UUID
 	Content   string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func (q *Queries) SendMessage(ctx context.Context, arg SendMessageParams) (Message, error) {
@@ -89,6 +92,8 @@ func (q *Queries) SendMessage(ctx context.Context, arg SendMessageParams) (Messa
 		arg.InquiryID,
 		arg.SenderID,
 		arg.Content,
+		arg.CreatedAt,
+		arg.UpdatedAt,
 	)
 	var i Message
 	err := row.Scan(

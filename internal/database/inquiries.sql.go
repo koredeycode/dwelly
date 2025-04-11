@@ -14,8 +14,8 @@ import (
 )
 
 const createInquiry = `-- name: CreateInquiry :one
-INSERT INTO inquiries (id, listing_id, sender_id)
-VALUES ($1, $2, $3)
+INSERT INTO inquiries (id, listing_id, sender_id, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING id, listing_id, sender_id, status, created_at, updated_at
 `
 
@@ -23,10 +23,18 @@ type CreateInquiryParams struct {
 	ID        uuid.UUID
 	ListingID uuid.UUID
 	SenderID  uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func (q *Queries) CreateInquiry(ctx context.Context, arg CreateInquiryParams) (Inquiry, error) {
-	row := q.db.QueryRowContext(ctx, createInquiry, arg.ID, arg.ListingID, arg.SenderID)
+	row := q.db.QueryRowContext(ctx, createInquiry,
+		arg.ID,
+		arg.ListingID,
+		arg.SenderID,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
 	var i Inquiry
 	err := row.Scan(
 		&i.ID,
