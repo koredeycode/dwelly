@@ -82,8 +82,9 @@ func (cfg *APIConfig) HandlerGetListings(w http.ResponseWriter, r *http.Request,
 }
 
 func (cfg *APIConfig) HandlerUpdateListing(w http.ResponseWriter, r *http.Request, user database.User) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Listing updated"))
+	type parameters struct {
+		Name string
+	}
 }
 
 func (cfg *APIConfig) HandlerDeleteListing(w http.ResponseWriter, r *http.Request, user database.User) {

@@ -47,6 +47,7 @@ func (cfg *APIConfig) HandlerRegisterUser(w http.ResponseWriter, r *http.Request
 	respondWithJSON(w, http.StatusCreated, models.DatabaseUsertoUser(user))
 }
 
+// Handle user logging in
 func (cfg *APIConfig) HandlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Password string `json:"password"`
