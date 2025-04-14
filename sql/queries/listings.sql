@@ -36,3 +36,7 @@ WHERE listings.location ILIKE '%' || $1 || '%'
   AND listings.intent = $3
   AND listings.status = 'active'
 ORDER BY listings.created_at DESC;
+
+-- name: DeleteListing :exec
+DELETE FROM listings WHERE id = $1 AND user_id = $2;
+

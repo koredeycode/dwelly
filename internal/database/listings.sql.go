@@ -62,6 +62,20 @@ func (q *Queries) CreateListing(ctx context.Context, arg CreateListingParams) (L
 	return i, err
 }
 
+const deleteListing = `-- name: DeleteListing :exec
+DELETE FROM listings WHERE id = $1 AND user_id = $2
+`
+
+type DeleteListingParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) DeleteListing(ctx context.Context, arg DeleteListingParams) error {
+	_, err := q.db.ExecContext(ctx, deleteListing, arg.ID, arg.UserID)
+	return err
+}
+
 const getListingByID = `-- name: GetListingByID :one
 SELECT listings.id, listings.user_id, listings.intent, listings.title, listings.description, listings.price, listings.location, listings.category, listings.status, listings.created_at, listings.updated_at, listing_images.url FROM
 listings 

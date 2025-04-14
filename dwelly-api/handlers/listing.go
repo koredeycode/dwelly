@@ -87,13 +87,32 @@ func (cfg *APIConfig) HandlerUpdateListing(w http.ResponseWriter, r *http.Reques
 }
 
 func (cfg *APIConfig) HandlerDeleteListing(w http.ResponseWriter, r *http.Request, user database.User) {
-	w.WriteHeader(http.StatusNoContent)
+	listingIDStr := chi.URLParam(r, "listingId")
+	if listingIDStr == "" {
+		respondWithError(w, http.StatusBadRequest, "missing listing ID")
+		return
+	}
+	listingId, err := uuid.Parse(listingIDStr)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid listing ID")
+		return
+	}
+	err = cfg.DB.DeleteListing(r.Context(), database.DeleteListingParams{
+		ID:     listingId,
+		UserID: user.ID,
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error deleting listing: %v", err))
+		return
+	}
+	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Listing deleted"})
 }
 
 func (cfg *APIConfig) HandlerUpdateListingStatus(w http.ResponseWriter, r *http.Request, user database.User) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Listing status updated"))
 }
+
 func (cfg *APIConfig) HandlerUploadListingImages(w http.ResponseWriter, r *http.Request, user database.User) {
 
 	// Get all files uploaded for "file" field (could be multiple)

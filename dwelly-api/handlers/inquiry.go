@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"github.com/koredeycode/dwelly/dwelly-api/models"
 	"github.com/koredeycode/dwelly/internal/database"
@@ -66,8 +67,26 @@ func (cfg *APIConfig) HandlerCreateInquiry(w http.ResponseWriter, r *http.Reques
 }
 
 func (cfg *APIConfig) HandlerGetInquiry(w http.ResponseWriter, r *http.Request, user database.User) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Single inquiry"))
+	inquiryIDStr := chi.URLParam(r, "inquiryId")
+	if inquiryIDStr == "" {
+		respondWithError(w, http.StatusBadRequest, "missing inquiry ID")
+		return
+	}
+
+	inquiryId, err := uuid.Parse(inquiryIDStr)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid inquiry ID")
+		return
+	}
+
+	inquiry, err := cfg.DB.GetInquiryByIDWithMessages(r.Context(), inquiryId)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "error getting inquiry")
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, models.DatabaseInquirytoInquiry(inquiry))
+
 }
 
 func (cfg *APIConfig) HandlerGetInquiries(w http.ResponseWriter, r *http.Request, user database.User) {
@@ -81,5 +100,26 @@ func (cfg *APIConfig) HandlerUpdateInquiryStatus(w http.ResponseWriter, r *http.
 }
 
 func (cfg *APIConfig) HandlerDeleteInquiry(w http.ResponseWriter, r *http.Request, user database.User) {
-	w.WriteHeader(http.StatusNoContent)
+	inquiryIdStr := chi.URLParam(r, "inquiryId")
+	if inquiryIdStr == "" {
+		respondWithError(w, http.StatusBadRequest, "missing inquiry ID")
+		return
+	}
+	inquiryId, err := uuid.Parse(inquiryIdStr)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid inquiry ID")
+		return
+	}
+	err = cfg.DB.DeleteInquiry(r.Context(), database.DeleteInquiryParams{
+		ID:       inquiryId,
+		SenderID: user.ID,
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "error deleting inquiry")
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, map[string]string{
+		"message": "Inquiry deleted",
+	})
 }
