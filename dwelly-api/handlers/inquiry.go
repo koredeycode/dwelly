@@ -40,11 +40,25 @@ func (cfg *APIConfig) HandlerCreateInquiry(w http.ResponseWriter, r *http.Reques
 			}
 			return id
 		}(),
-		Message: params.Message,
+		// Message: params.Message,
 	})
 
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "error creating inquiry")
+		respondWithError(w, http.StatusBadGateway, "error creating inquiry")
+		return
+	}
+
+	_, err = cfg.DB.CreateMessage(r.Context(), database.CreateMessageParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+		SenderID:  user.ID,
+		InquiryID: inquiry.ID,
+		Content:   params.Message,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "error creating message to inquiry")
 		return
 	}
 

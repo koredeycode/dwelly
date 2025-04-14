@@ -1,4 +1,4 @@
--- name: SendMessage :one
+-- name: CreateMessage :one
 INSERT INTO messages (id, inquiry_id, sender_id, content, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;

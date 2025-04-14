@@ -12,6 +12,42 @@ import (
 	"github.com/google/uuid"
 )
 
+const createMessage = `-- name: CreateMessage :one
+INSERT INTO messages (id, inquiry_id, sender_id, content, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, inquiry_id, sender_id, content, created_at, updated_at
+`
+
+type CreateMessageParams struct {
+	ID        uuid.UUID
+	InquiryID uuid.UUID
+	SenderID  uuid.UUID
+	Content   string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error) {
+	row := q.db.QueryRowContext(ctx, createMessage,
+		arg.ID,
+		arg.InquiryID,
+		arg.SenderID,
+		arg.Content,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	var i Message
+	err := row.Scan(
+		&i.ID,
+		&i.InquiryID,
+		&i.SenderID,
+		&i.Content,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const deleteMessage = `-- name: DeleteMessage :exec
 DELETE FROM messages WHERE id = $1 AND sender_id = $2
 `
@@ -69,40 +105,4 @@ func (q *Queries) GetMessagesByInquiry(ctx context.Context, inquiryID uuid.UUID)
 		return nil, err
 	}
 	return items, nil
-}
-
-const sendMessage = `-- name: SendMessage :one
-INSERT INTO messages (id, inquiry_id, sender_id, content, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, inquiry_id, sender_id, content, created_at, updated_at
-`
-
-type SendMessageParams struct {
-	ID        uuid.UUID
-	InquiryID uuid.UUID
-	SenderID  uuid.UUID
-	Content   string
-	CreatedAt time.Time
-	UpdatedAt time.Time
-}
-
-func (q *Queries) SendMessage(ctx context.Context, arg SendMessageParams) (Message, error) {
-	row := q.db.QueryRowContext(ctx, sendMessage,
-		arg.ID,
-		arg.InquiryID,
-		arg.SenderID,
-		arg.Content,
-		arg.CreatedAt,
-		arg.UpdatedAt,
-	)
-	var i Message
-	err := row.Scan(
-		&i.ID,
-		&i.InquiryID,
-		&i.SenderID,
-		&i.Content,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
 }
