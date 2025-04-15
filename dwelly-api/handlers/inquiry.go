@@ -69,6 +69,7 @@ func (cfg *APIConfig) HandlerCreateInquiry(w http.ResponseWriter, r *http.Reques
 	respondWithJSON(w, http.StatusCreated, models.DatabaseInquirytoInquiry(inquiry))
 }
 
+// to do: authorization of current user should be handled, sender of inquiry and listing own should be able to see the inquiry
 func (cfg *APIConfig) HandlerGetInquiry(w http.ResponseWriter, r *http.Request, user database.User) {
 	inquiryIDStr := chi.URLParam(r, "inquiryId")
 	if inquiryIDStr == "" {
@@ -92,11 +93,29 @@ func (cfg *APIConfig) HandlerGetInquiry(w http.ResponseWriter, r *http.Request, 
 
 }
 
+// to do: authorization of current user should be handled, listing owner should be able to see the inquiries for their listing
 func (cfg *APIConfig) HandlerGetInquiries(w http.ResponseWriter, r *http.Request, user database.User) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("List of inquiries"))
+	listingIDStr := chi.URLParam(r, "listingId")
+	if listingIDStr == "" {
+		respondWithError(w, http.StatusBadRequest, "missing listing ID")
+		return
+	}
+	listingId, err := uuid.Parse(listingIDStr)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid listing ID")
+		return
+	}
+
+	inquiries, err := cfg.DB.GetListingInquiries(r.Context(), listingId)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "error getting inquiries")
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, models.DatabaseInquiriestoInquiries(inquiries))
 }
 
+// to do: authorization of current user should be handled, sender of inquiry and listing own should be able to update the inquiry
 func (cfg *APIConfig) HandlerUpdateInquiryStatus(w http.ResponseWriter, r *http.Request, user database.User) {
 	type parameters struct {
 		Status string `json:"status"`
@@ -144,6 +163,7 @@ func (cfg *APIConfig) HandlerUpdateInquiryStatus(w http.ResponseWriter, r *http.
 	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Inquiry status updated"})
 }
 
+// to do: authorization of current user should be handled, sender of inquiry and listing own should be able to delete the inquiry
 func (cfg *APIConfig) HandlerDeleteInquiry(w http.ResponseWriter, r *http.Request, user database.User) {
 	inquiryIdStr := chi.URLParam(r, "inquiryId")
 	if inquiryIdStr == "" {

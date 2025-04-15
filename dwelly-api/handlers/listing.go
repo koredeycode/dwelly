@@ -55,6 +55,7 @@ func (cfg *APIConfig) HandlerCreateListing(w http.ResponseWriter, r *http.Reques
 
 }
 
+// to do: authorization should be handled, listing owner should be able to update the listing
 func (cfg *APIConfig) HandlerGetListing(w http.ResponseWriter, r *http.Request, user database.User) {
 	listingIDStr := chi.URLParam(r, "listingId")
 	if listingIDStr == "" {
@@ -113,6 +114,8 @@ func (api *APIConfig) HandlerSearchListings(w http.ResponseWriter, r *http.Reque
 
 	respondWithJSON(w, http.StatusOK, models.DatabaseListingstoListings(listings))
 }
+
+// to do: authorization should be handled, listing owner should be able to update the listing
 func (cfg *APIConfig) HandlerUpdateListing(w http.ResponseWriter, r *http.Request, user database.User) {
 	listingIDStr := chi.URLParam(r, "id")
 	listingID, err := uuid.Parse(listingIDStr)
@@ -159,6 +162,7 @@ func (cfg *APIConfig) HandlerUpdateListing(w http.ResponseWriter, r *http.Reques
 	respondWithJSON(w, http.StatusOK, models.DatabaseListingtoListing(listing))
 }
 
+// to do: authorization should be handled, listing owner should be able to delete the listing
 func (cfg *APIConfig) HandlerDeleteListing(w http.ResponseWriter, r *http.Request, user database.User) {
 	listingIDStr := chi.URLParam(r, "listingId")
 	if listingIDStr == "" {
@@ -181,6 +185,7 @@ func (cfg *APIConfig) HandlerDeleteListing(w http.ResponseWriter, r *http.Reques
 	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Listing deleted"})
 }
 
+// to do: authorization should be handled, listing owner should be able to update the listing status
 func (cfg *APIConfig) HandlerUpdateListingStatus(w http.ResponseWriter, r *http.Request, user database.User) {
 	type parameters struct {
 		Status string `json:"status"`
