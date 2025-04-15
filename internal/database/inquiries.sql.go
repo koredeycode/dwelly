@@ -70,74 +70,6 @@ func (q *Queries) DeleteInquiry(ctx context.Context, arg DeleteInquiryParams) er
 	return err
 }
 
-const getInquiriesByListing = `-- name: GetInquiriesByListing :many
-SELECT id, listing_id, sender_id, status, created_at, updated_at FROM inquiries WHERE listing_id = $1 ORDER BY created_at DESC
-`
-
-func (q *Queries) GetInquiriesByListing(ctx context.Context, listingID uuid.UUID) ([]Inquiry, error) {
-	rows, err := q.db.QueryContext(ctx, getInquiriesByListing, listingID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Inquiry
-	for rows.Next() {
-		var i Inquiry
-		if err := rows.Scan(
-			&i.ID,
-			&i.ListingID,
-			&i.SenderID,
-			&i.Status,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getInquiriesByUser = `-- name: GetInquiriesByUser :many
-SELECT id, listing_id, sender_id, status, created_at, updated_at FROM inquiries WHERE sender_id = $1 ORDER BY created_at DESC
-`
-
-func (q *Queries) GetInquiriesByUser(ctx context.Context, senderID uuid.UUID) ([]Inquiry, error) {
-	rows, err := q.db.QueryContext(ctx, getInquiriesByUser, senderID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Inquiry
-	for rows.Next() {
-		var i Inquiry
-		if err := rows.Scan(
-			&i.ID,
-			&i.ListingID,
-			&i.SenderID,
-			&i.Status,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getInquiryByIDWithMessages = `-- name: GetInquiryByIDWithMessages :one
 SELECT inquiries.id, inquiries.listing_id, inquiries.sender_id, inquiries.status, inquiries.created_at, inquiries.updated_at, messages.id AS message_id, messages.content AS message_content, messages.sender_id AS message_sender_id, messages.created_at AS message_created_at
 FROM inquiries
@@ -174,6 +106,58 @@ func (q *Queries) GetInquiryByIDWithMessages(ctx context.Context, id uuid.UUID) 
 		&i.MessageCreatedAt,
 	)
 	return i, err
+}
+
+const getInquiryById = `-- name: GetInquiryById :one
+SELECT id, listing_id, sender_id, status, created_at, updated_at FROM inquiries WHERE id = $1
+`
+
+func (q *Queries) GetInquiryById(ctx context.Context, id uuid.UUID) (Inquiry, error) {
+	row := q.db.QueryRowContext(ctx, getInquiryById, id)
+	var i Inquiry
+	err := row.Scan(
+		&i.ID,
+		&i.ListingID,
+		&i.SenderID,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getListingInquiries = `-- name: GetListingInquiries :many
+SELECT id, listing_id, sender_id, status, created_at, updated_at FROM inquiries WHERE listing_id = $1 ORDER BY created_at DESC
+`
+
+func (q *Queries) GetListingInquiries(ctx context.Context, listingID uuid.UUID) ([]Inquiry, error) {
+	rows, err := q.db.QueryContext(ctx, getListingInquiries, listingID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Inquiry
+	for rows.Next() {
+		var i Inquiry
+		if err := rows.Scan(
+			&i.ID,
+			&i.ListingID,
+			&i.SenderID,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateInquiryStatus = `-- name: UpdateInquiryStatus :exec

@@ -2,8 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
+
+	"slices"
 
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
@@ -95,8 +98,50 @@ func (cfg *APIConfig) HandlerGetInquiries(w http.ResponseWriter, r *http.Request
 }
 
 func (cfg *APIConfig) HandlerUpdateInquiryStatus(w http.ResponseWriter, r *http.Request, user database.User) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Inquiry status updated"))
+	type parameters struct {
+		Status string `json:"status"`
+	}
+	decoder := json.NewDecoder(r.Body)
+
+	params := parameters{}
+
+	err := decoder.Decode(&params)
+
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("error parsing json: %v", err))
+		return
+	}
+	statuses := []string{"active", "negotiation", "completed"}
+
+	statusNotValid := !slices.Contains(statuses, params.Status)
+
+	if statusNotValid {
+		respondWithError(w, http.StatusBadRequest, "invalid status")
+		return
+	}
+
+	inquiryIDStr := chi.URLParam(r, "inquiryId")
+	if inquiryIDStr == "" {
+		respondWithError(w, http.StatusBadRequest, "missing inquiry ID")
+		return
+	}
+
+	inquiryId, err := uuid.Parse(inquiryIDStr)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid inquiry ID")
+		return
+	}
+
+	err = cfg.DB.UpdateInquiryStatus(r.Context(), database.UpdateInquiryStatusParams{
+		ID:     inquiryId,
+		Status: params.Status,
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error updating inquiry status: %v", err))
+		return
+
+	}
+	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Inquiry status updated"})
 }
 
 func (cfg *APIConfig) HandlerDeleteInquiry(w http.ResponseWriter, r *http.Request, user database.User) {

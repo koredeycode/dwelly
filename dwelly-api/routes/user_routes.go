@@ -7,6 +7,9 @@ import (
 
 func UserRoutes(apiCfg *handlers.APIConfig) chi.Router {
 	r := chi.NewRouter()
+
 	r.Get("/me", apiCfg.MiddlewareAuth(apiCfg.HandlerGetUser))
+
+	r.Get("/{userId}/listings", apiCfg.MiddlewareAuth(apiCfg.HandlerGetUserListings))
 	return r
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
@@ -77,14 +78,85 @@ func (cfg *APIConfig) HandlerGetListing(w http.ResponseWriter, r *http.Request, 
 }
 
 func (cfg *APIConfig) HandlerGetListings(w http.ResponseWriter, r *http.Request, user database.User) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("List of listings"))
+	listings, err := cfg.DB.ListAllListings(r.Context(), database.ListAllListingsParams{
+		Limit:  10,
+		Offset: 0,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error getting listings: %v", err))
+		return
+	}
+
+	// Respond with the listings
+	respondWithJSON(w, http.StatusOK, models.DatabaseListingstoListings(listings))
+
 }
 
-func (cfg *APIConfig) HandlerUpdateListing(w http.ResponseWriter, r *http.Request, user database.User) {
-	type parameters struct {
-		Name string
+func (api *APIConfig) HandlerSearchListings(w http.ResponseWriter, r *http.Request, user database.User) {
+	query := r.URL.Query()
+
+	location := query.Get("location")
+	category := query.Get("category")
+	intent := query.Get("intent")
+
+	listings, err := api.DB.SearchListings(r.Context(), database.SearchListingsParams{
+		Column1: location,
+		Column2: category,
+		Column3: intent,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error fetching listings")
+		return
 	}
+
+	respondWithJSON(w, http.StatusOK, models.DatabaseListingstoListings(listings))
+}
+func (cfg *APIConfig) HandlerUpdateListing(w http.ResponseWriter, r *http.Request, user database.User) {
+	listingIDStr := chi.URLParam(r, "id")
+	listingID, err := uuid.Parse(listingIDStr)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid listing ID")
+		return
+	}
+
+	type parameters struct {
+		Intent      *string `json:"intent"`
+		Title       *string `json:"title"`
+		Description *string `json:"description"`
+		Price       *string `json:"price"`
+		Location    *string `json:"location"`
+		Category    *string `json:"category"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	params := parameters{}
+
+	err = decoder.Decode(&params)
+
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Error parsing JSON: %v", err))
+		return
+	}
+
+	listing, err := cfg.DB.UpdateListing(r.Context(), database.UpdateListingParams{
+		ID:          listingID,
+		Intent:      *params.Intent,
+		Title:       *params.Title,
+		Description: *params.Description,
+		Price:       *params.Price,
+		Location:    *params.Location,
+		Category:    *params.Category,
+		UpdatedAt:   time.Now(),
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update listing: %v", err))
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, models.DatabaseListingtoListing(listing))
 }
 
 func (cfg *APIConfig) HandlerDeleteListing(w http.ResponseWriter, r *http.Request, user database.User) {
@@ -110,8 +182,50 @@ func (cfg *APIConfig) HandlerDeleteListing(w http.ResponseWriter, r *http.Reques
 }
 
 func (cfg *APIConfig) HandlerUpdateListingStatus(w http.ResponseWriter, r *http.Request, user database.User) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Listing status updated"))
+	type parameters struct {
+		Status string `json:"status"`
+	}
+	decoder := json.NewDecoder(r.Body)
+
+	params := parameters{}
+
+	err := decoder.Decode(&params)
+
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("error parsing json: %v", err))
+		return
+	}
+	statuses := []string{"active", "negotiation", "completed"}
+
+	statusNotValid := !slices.Contains(statuses, params.Status)
+
+	if statusNotValid {
+		respondWithError(w, http.StatusBadRequest, "invalid status")
+		return
+	}
+
+	listingIDStr := chi.URLParam(r, "listingId")
+	if listingIDStr == "" {
+		respondWithError(w, http.StatusBadRequest, "missing listing ID")
+		return
+	}
+
+	listingId, err := uuid.Parse(listingIDStr)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid listing ID")
+		return
+	}
+
+	err = cfg.DB.UpdateListingStatus(r.Context(), database.UpdateListingStatusParams{
+		ID:     listingId,
+		Status: params.Status,
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error updating listing status: %v", err))
+		return
+
+	}
+	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Listing status updated"})
 }
 
 func (cfg *APIConfig) HandlerUploadListingImages(w http.ResponseWriter, r *http.Request, user database.User) {
@@ -168,7 +282,5 @@ func (cfg *APIConfig) HandlerUploadListingImages(w http.ResponseWriter, r *http.
 		}
 	}
 
-	// Return success response
-	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte("Listing images added"))
+	respondWithJSON(w, http.StatusCreated, map[string]string{"message": "Listing images added"})
 }

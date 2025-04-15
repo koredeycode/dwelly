@@ -3,7 +3,11 @@ INSERT INTO inquiries (id, listing_id, sender_id, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
--- name: GetInquiriesByListing :many
+
+-- name: GetInquiryById :one
+SELECT * FROM inquiries WHERE id = $1;
+
+-- name: GetListingInquiries :many
 SELECT * FROM inquiries WHERE listing_id = $1 ORDER BY created_at DESC;
 
 
@@ -12,11 +16,6 @@ SELECT inquiries.*, messages.id AS message_id, messages.content AS message_conte
 FROM inquiries
 LEFT JOIN messages ON inquiries.id = messages.inquiry_id
 WHERE inquiries.id = $1;
-
-
-
--- name: GetInquiriesByUser :many
-SELECT * FROM inquiries WHERE sender_id = $1 ORDER BY created_at DESC;
 
 -- name: UpdateInquiryStatus :exec
 UPDATE inquiries SET status = $2 WHERE id = $1;

@@ -121,7 +121,7 @@ func (q *Queries) GetListingByID(ctx context.Context, id uuid.UUID) (GetListingB
 const listAllListings = `-- name: ListAllListings :many
 SELECT listings.id, listings.user_id, listings.intent, listings.title, listings.description, listings.price, listings.location, listings.category, listings.status, listings.created_at, listings.updated_at, listing_images.url
 FROM listings
-LEFT JOIN listing_images ON listings.id = images.listing_id
+LEFT JOIN listing_images ON listings.id = listing_images.listing_id
 WHERE listings.status = 'active'
 ORDER BY listings.created_at DESC
 LIMIT $1 OFFSET $2
@@ -245,18 +245,18 @@ func (q *Queries) ListUserListings(ctx context.Context, userID uuid.UUID) ([]Lis
 const searchListings = `-- name: SearchListings :many
 SELECT listings.id, listings.user_id, listings.intent, listings.title, listings.description, listings.price, listings.location, listings.category, listings.status, listings.created_at, listings.updated_at, listing_images.url
 FROM listings
-LEFT JOIN listing_images ON listings.id = images.listing_id
-WHERE listings.location ILIKE '%' || $1 || '%'
-  AND listings.category = $2
-  AND listings.intent = $3
-  AND listings.status = 'active'
+LEFT JOIN listing_images ON listings.id = listing_images.listing_id
+WHERE listings.status = 'active'
+  AND ($1 = '' OR listings.location ILIKE '%' || $1 || '%')
+  AND ($2 = '' OR listings.category = $2)
+  AND ($3 = '' OR listings.intent = $3)
 ORDER BY listings.created_at DESC
 `
 
 type SearchListingsParams struct {
-	Column1  sql.NullString
-	Category string
-	Intent   string
+	Column1 interface{}
+	Column2 interface{}
+	Column3 interface{}
 }
 
 type SearchListingsRow struct {
@@ -275,7 +275,7 @@ type SearchListingsRow struct {
 }
 
 func (q *Queries) SearchListings(ctx context.Context, arg SearchListingsParams) ([]SearchListingsRow, error) {
-	rows, err := q.db.QueryContext(ctx, searchListings, arg.Column1, arg.Category, arg.Intent)
+	rows, err := q.db.QueryContext(ctx, searchListings, arg.Column1, arg.Column2, arg.Column3)
 	if err != nil {
 		return nil, err
 	}
@@ -308,6 +308,59 @@ func (q *Queries) SearchListings(ctx context.Context, arg SearchListingsParams) 
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateListing = `-- name: UpdateListing :one
+UPDATE listings
+SET 
+    intent = COALESCE($2, intent),
+    title = COALESCE($3, title),
+    description = COALESCE($4, description),
+    price = COALESCE($5, price),
+    location = COALESCE($6, location),
+    category = COALESCE($7, category),
+    updated_at = $8
+WHERE id = $1
+RETURNING id, user_id, intent, title, description, price, location, category, status, created_at, updated_at
+`
+
+type UpdateListingParams struct {
+	ID          uuid.UUID
+	Intent      string
+	Title       string
+	Description string
+	Price       string
+	Location    string
+	Category    string
+	UpdatedAt   time.Time
+}
+
+func (q *Queries) UpdateListing(ctx context.Context, arg UpdateListingParams) (Listing, error) {
+	row := q.db.QueryRowContext(ctx, updateListing,
+		arg.ID,
+		arg.Intent,
+		arg.Title,
+		arg.Description,
+		arg.Price,
+		arg.Location,
+		arg.Category,
+		arg.UpdatedAt,
+	)
+	var i Listing
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Intent,
+		&i.Title,
+		&i.Description,
+		&i.Price,
+		&i.Location,
+		&i.Category,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const updateListingStatus = `-- name: UpdateListingStatus :exec
