@@ -44,6 +44,8 @@ func main() {
 
 	router := routes.SetUpRouter(&apiCfg)
 
+	routes.PrintRoutes(router)
+
 	srv := &http.Server{
 		Handler: router,
 		Addr:    ":" + portString,

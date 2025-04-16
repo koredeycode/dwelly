@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -39,4 +40,15 @@ func SetUpRouter(apiCfg *handlers.APIConfig) *chi.Mux {
 	})
 
 	return router
+}
+
+// Print all routes implemented and method
+func PrintRoutes(r chi.Router) {
+	err := chi.Walk(r, func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
+		fmt.Printf("%-7s -> %s\n", method, route)
+		return nil
+	})
+	if err != nil {
+		fmt.Printf("Failed to walk routes: %s\n", err.Error())
+	}
 }
