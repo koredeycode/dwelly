@@ -104,5 +104,20 @@ func (cfg *APIConfig) HandlerLogoutUser(w http.ResponseWriter, r *http.Request, 
 	// This can be done by adding the token to a blacklist or simply ignoring it
 	// in your application logic.
 	// For this example, we'll just return a success message.
+	tokenString := r.Context().Value("token").(string)
+
+	expiration, err := utils.GetTokenExpiry(tokenString)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to get token expiration")
+		return
+	}
+
+	err = cfg.Redis.Set(r.Context(), "blacklist:"+tokenString, "revoked", expiration).Err()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to blacklist token")
+		return
+	}
+
 	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Logged out successfully"})
 }

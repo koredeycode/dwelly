@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/koredeycode/dwelly/dwelly-api/models"
 	"github.com/koredeycode/dwelly/dwelly-api/utils"
-	cloudinaryutil "github.com/koredeycode/dwelly/internal/cloudinary"
 	"github.com/koredeycode/dwelly/internal/database"
 )
 
@@ -246,11 +245,11 @@ func (cfg *APIConfig) HandlerUploadListingImages(w http.ResponseWriter, r *http.
 	}
 
 	// Create Cloudinary client
-	cld, err := cloudinaryutil.NewClient()
-	if err != nil {
-		http.Error(w, "Could not create Cloudinary client", http.StatusInternalServerError)
-		return
-	}
+	// cld, err := cloudinaryutil.NewClient()
+	// if err != nil {
+	// 	http.Error(w, "Could not create Cloudinary client", http.StatusInternalServerError)
+	// 	return
+	// }
 
 	// Loop through all files and upload them
 	for _, fileHeader := range files {
@@ -262,7 +261,7 @@ func (cfg *APIConfig) HandlerUploadListingImages(w http.ResponseWriter, r *http.
 		defer file.Close()
 
 		// Upload to Cloudinary
-		uploadResp, err := cld.Upload.Upload(r.Context(), file, uploader.UploadParams{
+		uploadResp, err := cfg.Cloudinary.Upload.Upload(r.Context(), file, uploader.UploadParams{
 			PublicID: fileHeader.Filename,
 			Folder:   "dwelly/listings",
 		})

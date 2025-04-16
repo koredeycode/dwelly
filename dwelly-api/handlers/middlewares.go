@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -12,6 +13,10 @@ import (
 	"github.com/koredeycode/dwelly/dwelly-api/utils"
 	"github.com/koredeycode/dwelly/internal/database"
 )
+
+type contextKey string
+
+const TokenContextKey contextKey = "token"
 
 type authHandler func(http.ResponseWriter, *http.Request, database.User)
 
@@ -34,6 +39,16 @@ func (cfg *APIConfig) AuthenticationMiddleware(handler authHandler) http.Handler
 		}
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+		isBlacklisted, err := cfg.Redis.Exists(r.Context(), "blacklist:"+tokenString).Result()
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Redis error")
+			return
+		}
+		if isBlacklisted == 1 {
+			respondWithError(w, http.StatusUnauthorized, "Token has been revoked")
+			return
+		}
 
 		claims := jwt.MapClaims{}
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
@@ -62,7 +77,9 @@ func (cfg *APIConfig) AuthenticationMiddleware(handler authHandler) http.Handler
 			return
 		}
 
-		handler(w, r, user)
+		ctx := context.WithValue(r.Context(), TokenContextKey, tokenString)
+
+		handler(w, r.WithContext(ctx), user)
 	}
 }
 

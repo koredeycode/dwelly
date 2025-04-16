@@ -8,7 +8,7 @@ import (
 	"github.com/cloudinary/cloudinary-go/v2"
 )
 
-func NewClient() (*cloudinary.Cloudinary, error) {
+func NewClient() *cloudinary.Cloudinary {
 
 	cld, err := cloudinary.NewFromParams(
 		os.Getenv("CLOUDINARY_CLOUD_NAME"),
@@ -16,9 +16,8 @@ func NewClient() (*cloudinary.Cloudinary, error) {
 		os.Getenv("CLOUDINARY_API_SECRET"),
 	)
 	if err != nil {
-		log.Printf("Failed to initialize Cloudinary: %v", err)
-		return nil, err
+		log.Fatalf("Failed to initialize Cloudinary: %v", err)
 	}
 
-	return cld, nil
+	return cld
 }

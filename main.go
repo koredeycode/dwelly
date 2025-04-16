@@ -9,7 +9,9 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/koredeycode/dwelly/dwelly-api/handlers"
 	"github.com/koredeycode/dwelly/dwelly-api/routes"
+	cloudinaryutil "github.com/koredeycode/dwelly/internal/cloudinary"
 	"github.com/koredeycode/dwelly/internal/database"
+	"github.com/koredeycode/dwelly/internal/redis"
 	_ "github.com/lib/pq"
 )
 
@@ -31,8 +33,13 @@ func main() {
 		log.Fatal("Error connecting to database:", err)
 	}
 	db := database.New(conn)
+	redisClient := redis.InitRedis()
+	cloudinaryClient := cloudinaryutil.NewClient()
+
 	apiCfg := handlers.APIConfig{
-		DB: db,
+		DB:         db,
+		Redis:      redisClient,
+		Cloudinary: cloudinaryClient,
 	}
 
 	router := routes.SetUpRouter(&apiCfg)
