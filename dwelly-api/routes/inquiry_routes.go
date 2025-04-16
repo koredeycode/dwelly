@@ -10,14 +10,13 @@ func InquiryRoutes(apiCfg *handlers.APIConfig) chi.Router {
 
 	r.Group(func(r chi.Router) {
 
-		r.Post("/", apiCfg.MiddlewareAuth(apiCfg.HandlerCreateInquiry))
 		r.Get("/{inquiryId}", apiCfg.MiddlewareAuth(apiCfg.HandlerGetInquiry))
-		r.Get("/", apiCfg.MiddlewareAuth(apiCfg.HandlerGetInquiries))
+
 		r.Patch("/{inquiryId}/status", apiCfg.MiddlewareAuth(apiCfg.HandlerUpdateInquiryStatus))
 		r.Delete("/{inquiryId}", apiCfg.MiddlewareAuth(apiCfg.HandlerDeleteInquiry))
 
-		r.Post("/{inquiryId}/messages", apiCfg.MiddlewareAuth(apiCfg.HandlerCreateInquiryMessage))
 		r.Get("/{inquiryId}/messages", apiCfg.MiddlewareAuth(apiCfg.HandlerGetInquiryMessages))
+		r.Post("/{inquiryId}/messages", apiCfg.MiddlewareAuth(apiCfg.HandlerCreateInquiryMessage))
 	})
 
 	return r

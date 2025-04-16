@@ -9,19 +9,24 @@ func ListingRoutes(apiCfg *handlers.APIConfig) chi.Router {
 	r := chi.NewRouter()
 
 	r.Group(func(r chi.Router) {
-		r.Post("/", apiCfg.MiddlewareAuth(apiCfg.HandlerCreateListing))
-		r.Get("/{listingId}", apiCfg.MiddlewareAuth(apiCfg.HandlerGetListing))
+		// could be merged?
+		r.Get("/search", apiCfg.MiddlewareAuth(apiCfg.HandlerSearchListings))
 		r.Get("/", apiCfg.MiddlewareAuth(apiCfg.HandlerGetListings))
-		r.Put("/{listingId}", apiCfg.MiddlewareAuth(apiCfg.HandlerUpdateListing))
-		r.Delete("/{listingId}", apiCfg.MiddlewareAuth(apiCfg.HandlerDeleteListing))
-		r.Patch("/{listingId}/status", apiCfg.MiddlewareAuth(apiCfg.HandlerUpdateListingStatus))
-		r.Post("/{listingId}/images", apiCfg.MiddlewareAuth(apiCfg.HandlerAddListingImage))
 
+		r.Post("/", apiCfg.MiddlewareAuth(apiCfg.HandlerCreateListing))
+		r.Get("/{listingId}", apiCfg.HandlerGetListing)
+		r.Delete("/{listingId}", apiCfg.MiddlewareAuth(apiCfg.HandlerDeleteListing))
+
+		r.Put("/{listingId}", apiCfg.MiddlewareAuth(apiCfg.HandlerUpdateListing))
+		r.Patch("/{listingId}/status", apiCfg.MiddlewareAuth(apiCfg.HandlerUpdateListingStatus))
+
+		r.Post("/{listingId}/images", apiCfg.MiddlewareAuth(apiCfg.HandlerAddListingImage))
 		r.Post("/{listingId}/images/upload", apiCfg.MiddlewareAuth(apiCfg.HandlerUploadListingImages))
 
 		r.Delete("/images/{imageId}", apiCfg.MiddlewareAuth(apiCfg.HandlerDeleteListingImage))
 
-		r.Get("/search", apiCfg.MiddlewareAuth(apiCfg.HandlerSearchListings))
+		r.Get("{listingId}/inquiries", apiCfg.MiddlewareAuth(apiCfg.HandlerGetListingInquiries))
+		r.Post("{listingId}/inquiries/", apiCfg.MiddlewareAuth(apiCfg.HandlerCreateListingInquiry))
 
 	})
 

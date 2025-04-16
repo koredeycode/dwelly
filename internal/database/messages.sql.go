@@ -71,6 +71,25 @@ func (q *Queries) DeleteMessagesByInquiry(ctx context.Context, inquiryID uuid.UU
 	return err
 }
 
+const getMessage = `-- name: GetMessage :one
+SELECT id, inquiry_id, sender_id, content, created_at, updated_at FROM messages
+WHERE id = $1
+`
+
+func (q *Queries) GetMessage(ctx context.Context, id uuid.UUID) (Message, error) {
+	row := q.db.QueryRowContext(ctx, getMessage, id)
+	var i Message
+	err := row.Scan(
+		&i.ID,
+		&i.InquiryID,
+		&i.SenderID,
+		&i.Content,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getMessagesByInquiry = `-- name: GetMessagesByInquiry :many
 SELECT id, inquiry_id, sender_id, content, created_at, updated_at FROM messages
 WHERE inquiry_id = $1
@@ -105,4 +124,37 @@ func (q *Queries) GetMessagesByInquiry(ctx context.Context, inquiryID uuid.UUID)
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateMessage = `-- name: UpdateMessage :one
+UPDATE messages
+SET content = $1, updated_at = $2
+WHERE id = $3 AND sender_id = $4
+RETURNING id, inquiry_id, sender_id, content, created_at, updated_at
+`
+
+type UpdateMessageParams struct {
+	Content   string
+	UpdatedAt time.Time
+	ID        uuid.UUID
+	SenderID  uuid.UUID
+}
+
+func (q *Queries) UpdateMessage(ctx context.Context, arg UpdateMessageParams) (Message, error) {
+	row := q.db.QueryRowContext(ctx, updateMessage,
+		arg.Content,
+		arg.UpdatedAt,
+		arg.ID,
+		arg.SenderID,
+	)
+	var i Message
+	err := row.Scan(
+		&i.ID,
+		&i.InquiryID,
+		&i.SenderID,
+		&i.Content,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

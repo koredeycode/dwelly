@@ -44,7 +44,7 @@ func (cfg *APIConfig) HandlerRegisterUser(w http.ResponseWriter, r *http.Request
 		respondWithError(w, http.StatusInternalServerError, "Could not create user")
 		return
 	}
-	respondWithJSON(w, http.StatusCreated, models.DatabaseUsertoUser(user))
+	respondWithJSON(w, http.StatusCreated, models.DatabaseUserToUser(user))
 }
 
 // Handle user logging in
@@ -97,4 +97,12 @@ func (cfg *APIConfig) HandlerLoginUser(w http.ResponseWriter, r *http.Request) {
 
 	// respondWithJSON(w, http.StatusOK, models.DatabaseUsertoUser(user))
 
+}
+
+func (cfg *APIConfig) HandlerLogoutUser(w http.ResponseWriter, r *http.Request, user database.User) {
+	// Invalidate the token by removing it from the database or cache
+	// This can be done by adding the token to a blacklist or simply ignoring it
+	// in your application logic.
+	// For this example, we'll just return a success message.
+	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Logged out successfully"})
 }

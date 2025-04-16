@@ -15,7 +15,7 @@ type User struct {
 	Email     string    `json:"email"`
 }
 
-func DatabaseUsertoUser(dbUser database.User) User {
+func DatabaseUserToUser(dbUser database.User) User {
 	return User{
 		ID:        dbUser.ID,
 		CreatedAt: dbUser.CreatedAt,
@@ -25,10 +25,10 @@ func DatabaseUsertoUser(dbUser database.User) User {
 	}
 }
 
-func DatabaseUserstoUsers(dbUsers []database.User) []User {
+func DatabaseUsersToUsers(dbUsers []database.User) []User {
 	users := make([]User, len(dbUsers))
 	for i, user := range dbUsers {
-		users[i] = DatabaseUsertoUser(user)
+		users[i] = DatabaseUserToUser(user)
 	}
 	return users
 

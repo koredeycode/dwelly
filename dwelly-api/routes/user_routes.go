@@ -8,8 +8,10 @@ import (
 func UserRoutes(apiCfg *handlers.APIConfig) chi.Router {
 	r := chi.NewRouter()
 
-	r.Get("/me", apiCfg.MiddlewareAuth(apiCfg.HandlerGetUser))
+	r.Get("/{userId}", apiCfg.MiddlewareAuth(apiCfg.HandlerGetUser))
+	// r.Patch("/{userId}", apiCfg.MiddlewareAuth(apiCfg.HandlerUpdateUser))
+	// r.Delete("/{userId}", apiCfg.MiddlewareAuth(apiCfg.HandlerDeleteUser))
 
-	r.Get("/{userId}/listings", apiCfg.MiddlewareAuth(apiCfg.HandlerGetUserListings))
+	// r.Get("/{userId}/listings", apiCfg.MiddlewareAuth(apiCfg.HandlerGetUserListings))
 	return r
 }

@@ -9,7 +9,7 @@ import (
 )
 
 func (cfg *APIConfig) HandlerGetUser(w http.ResponseWriter, r *http.Request, user database.User) {
-	respondWithJSON(w, http.StatusOK, models.DatabaseUsertoUser(user))
+	respondWithJSON(w, http.StatusOK, models.DatabaseUserToUser(user))
 }
 
 func (cfg *APIConfig) HandlerGetUserListings(w http.ResponseWriter, r *http.Request, user database.User) {
@@ -21,5 +21,5 @@ func (cfg *APIConfig) HandlerGetUserListings(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Respond with the listings
-	respondWithJSON(w, http.StatusOK, models.DatabaseListingstoListings(user_listings))
+	respondWithJSON(w, http.StatusOK, models.DatabaseListingsToListings(user_listings))
 }

@@ -38,7 +38,7 @@ type Listing struct {
 	Images []string `json:"images"`
 }
 
-func DatabaseListingtoListing[T ListingLike](l T) Listing {
+func DatabaseListingToListing[T ListingLike](l T) Listing {
 
 	return Listing{
 		ID:          l.GetID(),
@@ -57,10 +57,10 @@ func DatabaseListingtoListing[T ListingLike](l T) Listing {
 	}
 }
 
-func DatabaseListingstoListings[T ListingLike](ls []T) []Listing {
+func DatabaseListingsToListings[T ListingLike](ls []T) []Listing {
 	listings := make([]Listing, len(ls))
 	for i, listing := range ls {
-		listings[i] = DatabaseListingtoListing(listing)
+		listings[i] = DatabaseListingToListing(listing)
 	}
 	return listings
 

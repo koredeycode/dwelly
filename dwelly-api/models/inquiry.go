@@ -26,7 +26,7 @@ type Inquiry struct {
 	Messages []Message `json:"messages"`
 }
 
-func DatabaseInquirytoInquiry[T InquiryLike](i T) Inquiry {
+func DatabaseInquiryToInquiry[T InquiryLike](i T) Inquiry {
 	return Inquiry{
 		ID:        i.GetID(),
 		CreatedAt: i.GetCreatedAt(),
@@ -37,10 +37,10 @@ func DatabaseInquirytoInquiry[T InquiryLike](i T) Inquiry {
 	}
 }
 
-func DatabaseInquiriestoInquiries[T InquiryLike](is []T) []Inquiry {
+func DatabaseInquiriesToInquiries[T InquiryLike](is []T) []Inquiry {
 	inquiries := make([]Inquiry, len(is))
 	for i, inquiry := range is {
-		inquiries[i] = DatabaseInquirytoInquiry(inquiry)
+		inquiries[i] = DatabaseInquiryToInquiry(inquiry)
 	}
 	return inquiries
 

@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"github.com/koredeycode/dwelly/dwelly-api/models"
+	"github.com/koredeycode/dwelly/dwelly-api/services"
 	cloudinaryutil "github.com/koredeycode/dwelly/internal/cloudinary"
 	"github.com/koredeycode/dwelly/internal/database"
 )
@@ -51,12 +52,11 @@ func (cfg *APIConfig) HandlerCreateListing(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, models.DatabaseListingtoListing(listing))
+	respondWithJSON(w, http.StatusCreated, models.DatabaseListingToListing(listing))
 
 }
 
-// to do: authorization should be handled, listing owner should be able to update the listing
-func (cfg *APIConfig) HandlerGetListing(w http.ResponseWriter, r *http.Request, user database.User) {
+func (cfg *APIConfig) HandlerGetListing(w http.ResponseWriter, r *http.Request) {
 	listingIDStr := chi.URLParam(r, "listingId")
 	if listingIDStr == "" {
 		respondWithError(w, http.StatusBadRequest, "missing listing ID")
@@ -75,7 +75,7 @@ func (cfg *APIConfig) HandlerGetListing(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, models.DatabaseListingtoListing(listing))
+	respondWithJSON(w, http.StatusOK, models.DatabaseListingToListing(listing))
 }
 
 func (cfg *APIConfig) HandlerGetListings(w http.ResponseWriter, r *http.Request, user database.User) {
@@ -90,7 +90,7 @@ func (cfg *APIConfig) HandlerGetListings(w http.ResponseWriter, r *http.Request,
 	}
 
 	// Respond with the listings
-	respondWithJSON(w, http.StatusOK, models.DatabaseListingstoListings(listings))
+	respondWithJSON(w, http.StatusOK, models.DatabaseListingsToListings(listings))
 
 }
 
@@ -112,7 +112,7 @@ func (api *APIConfig) HandlerSearchListings(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, models.DatabaseListingstoListings(listings))
+	respondWithJSON(w, http.StatusOK, models.DatabaseListingsToListings(listings))
 }
 
 // to do: authorization should be handled, listing owner should be able to update the listing
@@ -121,6 +121,16 @@ func (cfg *APIConfig) HandlerUpdateListing(w http.ResponseWriter, r *http.Reques
 	listingID, err := uuid.Parse(listingIDStr)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid listing ID")
+		return
+	}
+
+	//Permission check
+	isListingOwner, err := services.IsListingOwner(cfg.DB, r, listingID, user.ID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking listing owner: %v", err))
+	}
+	if !isListingOwner {
+		respondWithError(w, http.StatusForbidden, "user is not the owner of the listing")
 		return
 	}
 
@@ -159,7 +169,7 @@ func (cfg *APIConfig) HandlerUpdateListing(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, models.DatabaseListingtoListing(listing))
+	respondWithJSON(w, http.StatusOK, models.DatabaseListingToListing(listing))
 }
 
 // to do: authorization should be handled, listing owner should be able to delete the listing
@@ -174,6 +184,17 @@ func (cfg *APIConfig) HandlerDeleteListing(w http.ResponseWriter, r *http.Reques
 		respondWithError(w, http.StatusBadRequest, "invalid listing ID")
 		return
 	}
+
+	//Permission check
+	isListingOwner, err := services.IsListingOwner(cfg.DB, r, listingId, user.ID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking listing owner: %v", err))
+	}
+	if !isListingOwner {
+		respondWithError(w, http.StatusForbidden, "user is not the owner of the listing")
+		return
+	}
+
 	err = cfg.DB.DeleteListing(r.Context(), database.DeleteListingParams{
 		ID:     listingId,
 		UserID: user.ID,
@@ -187,6 +208,28 @@ func (cfg *APIConfig) HandlerDeleteListing(w http.ResponseWriter, r *http.Reques
 
 // to do: authorization should be handled, listing owner should be able to update the listing status
 func (cfg *APIConfig) HandlerUpdateListingStatus(w http.ResponseWriter, r *http.Request, user database.User) {
+	listingIDStr := chi.URLParam(r, "listingId")
+	if listingIDStr == "" {
+		respondWithError(w, http.StatusBadRequest, "missing listing ID")
+		return
+	}
+
+	listingId, err := uuid.Parse(listingIDStr)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid listing ID")
+		return
+	}
+
+	//Permission check
+	isListingOwner, err := services.IsListingOwner(cfg.DB, r, listingId, user.ID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking listing owner: %v", err))
+	}
+	if !isListingOwner {
+		respondWithError(w, http.StatusForbidden, "user is not the owner of the listing")
+		return
+	}
+
 	type parameters struct {
 		Status string `json:"status"`
 	}
@@ -194,7 +237,7 @@ func (cfg *APIConfig) HandlerUpdateListingStatus(w http.ResponseWriter, r *http.
 
 	params := parameters{}
 
-	err := decoder.Decode(&params)
+	err = decoder.Decode(&params)
 
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("error parsing json: %v", err))
@@ -206,18 +249,6 @@ func (cfg *APIConfig) HandlerUpdateListingStatus(w http.ResponseWriter, r *http.
 
 	if statusNotValid {
 		respondWithError(w, http.StatusBadRequest, "invalid status")
-		return
-	}
-
-	listingIDStr := chi.URLParam(r, "listingId")
-	if listingIDStr == "" {
-		respondWithError(w, http.StatusBadRequest, "missing listing ID")
-		return
-	}
-
-	listingId, err := uuid.Parse(listingIDStr)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "invalid listing ID")
 		return
 	}
 
@@ -234,6 +265,27 @@ func (cfg *APIConfig) HandlerUpdateListingStatus(w http.ResponseWriter, r *http.
 }
 
 func (cfg *APIConfig) HandlerUploadListingImages(w http.ResponseWriter, r *http.Request, user database.User) {
+	listingIDStr := chi.URLParam(r, "listingId")
+	if listingIDStr == "" {
+		respondWithError(w, http.StatusBadRequest, "missing listing ID")
+		return
+	}
+
+	listingId, err := uuid.Parse(listingIDStr)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid listing ID")
+		return
+	}
+
+	//Permission check
+	isListingOwner, err := services.IsListingOwner(cfg.DB, r, listingId, user.ID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking listing owner: %v", err))
+	}
+	if !isListingOwner {
+		respondWithError(w, http.StatusForbidden, "user is not the owner of the listing")
+		return
+	}
 
 	// Get all files uploaded for "file" field (could be multiple)
 	files := r.MultipartForm.File["file"]
@@ -268,16 +320,16 @@ func (cfg *APIConfig) HandlerUploadListingImages(w http.ResponseWriter, r *http.
 			return
 		}
 
-		// Save the image URL to the database
-		listingID, err := uuid.Parse(chi.URLParam(r, "listingId"))
-		if err != nil {
-			http.Error(w, "Invalid listing ID", http.StatusBadRequest)
-			return
-		}
+		// // Save the image URL to the database
+		// listingID, err := uuid.Parse(chi.URLParam(r, "listingId"))
+		// if err != nil {
+		// 	http.Error(w, "Invalid listing ID", http.StatusBadRequest)
+		// 	return
+		// }
 		imageURL := uploadResp.SecureURL
 		_, err = cfg.DB.AddListingImage(r.Context(), database.AddListingImageParams{
 			ID:        uuid.New(),
-			ListingID: listingID,
+			ListingID: listingId,
 			Url:       imageURL,
 		})
 

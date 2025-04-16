@@ -17,7 +17,7 @@ type Message struct {
 	SenderID  uuid.UUID `json:"sender_id"`
 }
 
-func DatabaseMessagetoMessage(dbMessage database.Message) Message {
+func DatabaseMessageToMessage(dbMessage database.Message) Message {
 	return Message{
 		ID:        dbMessage.ID,
 		CreatedAt: dbMessage.CreatedAt,
@@ -28,10 +28,10 @@ func DatabaseMessagetoMessage(dbMessage database.Message) Message {
 	}
 }
 
-func DatabaseMessagestoMessages(dbMessages []database.Message) []Message {
+func DatabaseMessagesToMessages(dbMessages []database.Message) []Message {
 	messages := make([]Message, len(dbMessages))
 	for i, message := range dbMessages {
-		messages[i] = DatabaseMessagetoMessage(message)
+		messages[i] = DatabaseMessageToMessage(message)
 	}
 	return messages
 

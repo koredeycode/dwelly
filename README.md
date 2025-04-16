@@ -9,7 +9,7 @@ A brief description of the **Dwelly** project goes here.
 3. Run the application
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/koredeycode/dwelly
 cd Dwelly
 # Setup steps
 ```
