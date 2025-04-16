@@ -73,36 +73,11 @@ func (cfg *APIConfig) HandlerCreateListingInquiry(w http.ResponseWriter, r *http
 
 // to do: authorization of current user should be handled, sender of inquiry and listing own should be able to see the inquiry
 func (cfg *APIConfig) HandlerGetInquiry(w http.ResponseWriter, r *http.Request, user database.User) {
-	listingIDStr := chi.URLParam(r, "listingId")
-
-	listingId, errMsg := utils.GetUUIDParam(listingIDStr, "listing")
-
-	if errMsg != "" {
-		respondWithError(w, http.StatusBadRequest, errMsg)
-		return
-	}
-
 	inquiryIDStr := chi.URLParam(r, "inquiryId")
 	inquiryId, errMsg := utils.GetUUIDParam(inquiryIDStr, "inquiry")
 
 	if errMsg != "" {
 		respondWithError(w, http.StatusBadRequest, errMsg)
-		return
-	}
-
-	//Permission check
-	isInquirySender, err := utils.IsInquirySender(cfg.DB, r, inquiryId, user.ID)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking inquiry sender: %v", err))
-	}
-
-	isListingOwner, err := utils.IsListingOwner(cfg.DB, r, listingId, user.ID)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking listing owner: %v", err))
-	}
-
-	if !isInquirySender || !isListingOwner {
-		respondWithError(w, http.StatusForbidden, "user is not the owner of the listing or sender of the inquiry")
 		return
 	}
 
@@ -125,16 +100,6 @@ func (cfg *APIConfig) HandlerGetListingInquiries(w http.ResponseWriter, r *http.
 		respondWithError(w, http.StatusBadRequest, errMsg)
 		return
 	}
-	//Permission check
-	isListingOwner, err := utils.IsListingOwner(cfg.DB, r, listingId, user.ID)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking listing owner: %v", err))
-	}
-
-	if !isListingOwner {
-		respondWithError(w, http.StatusForbidden, "user is not the owner of the listing")
-		return
-	}
 
 	inquiries, err := cfg.DB.GetListingInquiries(r.Context(), listingId)
 	if err != nil {
@@ -147,31 +112,12 @@ func (cfg *APIConfig) HandlerGetListingInquiries(w http.ResponseWriter, r *http.
 
 // to do: authorization of current user should be handled, sender of inquiry and listing own should be able to update the inquiry
 func (cfg *APIConfig) HandlerUpdateInquiryStatus(w http.ResponseWriter, r *http.Request, user database.User) {
-	listingIDStr := chi.URLParam(r, "listingId")
-
-	listingId, errMsg := utils.GetUUIDParam(listingIDStr, "listing")
-
-	if errMsg != "" {
-		respondWithError(w, http.StatusBadRequest, errMsg)
-		return
-	}
 
 	inquiryIDStr := chi.URLParam(r, "inquiryId")
 	inquiryId, errMsg := utils.GetUUIDParam(inquiryIDStr, "inquiry")
 
 	if errMsg != "" {
 		respondWithError(w, http.StatusBadRequest, errMsg)
-		return
-	}
-
-	//Permission check
-	isListingOwner, err := utils.IsListingOwner(cfg.DB, r, listingId, user.ID)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking listing owner: %v", err))
-	}
-
-	if !isListingOwner {
-		respondWithError(w, http.StatusForbidden, "user is not the owner of the listing")
 		return
 	}
 
@@ -182,7 +128,7 @@ func (cfg *APIConfig) HandlerUpdateInquiryStatus(w http.ResponseWriter, r *http.
 
 	params := parameters{}
 
-	err = decoder.Decode(&params)
+	err := decoder.Decode(&params)
 
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("error parsing json: %v", err))
@@ -220,18 +166,7 @@ func (cfg *APIConfig) HandlerDeleteInquiry(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	//Permission check
-	isInquirySender, err := utils.IsInquirySender(cfg.DB, r, inquiryId, user.ID)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking inquiry sender: %v", err))
-	}
-
-	if !isInquirySender {
-		respondWithError(w, http.StatusForbidden, "user is not the sender of the inquiry")
-		return
-	}
-
-	err = cfg.DB.DeleteInquiry(r.Context(), database.DeleteInquiryParams{
+	err := cfg.DB.DeleteInquiry(r.Context(), database.DeleteInquiryParams{
 		ID:       inquiryId,
 		SenderID: user.ID,
 	})

@@ -123,16 +123,6 @@ func (cfg *APIConfig) HandlerUpdateListing(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	//Permission check
-	isListingOwner, err := utils.IsListingOwner(cfg.DB, r, listingID, user.ID)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking listing owner: %v", err))
-	}
-	if !isListingOwner {
-		respondWithError(w, http.StatusForbidden, "user is not the owner of the listing")
-		return
-	}
-
 	type parameters struct {
 		Intent      *string `json:"intent"`
 		Title       *string `json:"title"`
@@ -145,7 +135,7 @@ func (cfg *APIConfig) HandlerUpdateListing(w http.ResponseWriter, r *http.Reques
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
 
-	err = decoder.Decode(&params)
+	err := decoder.Decode(&params)
 
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Error parsing JSON: %v", err))
@@ -182,17 +172,7 @@ func (cfg *APIConfig) HandlerDeleteListing(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	//Permission check
-	isListingOwner, err := utils.IsListingOwner(cfg.DB, r, listingID, user.ID)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking listing owner: %v", err))
-	}
-	if !isListingOwner {
-		respondWithError(w, http.StatusForbidden, "user is not the owner of the listing")
-		return
-	}
-
-	err = cfg.DB.DeleteListing(r.Context(), database.DeleteListingParams{
+	err := cfg.DB.DeleteListing(r.Context(), database.DeleteListingParams{
 		ID:     listingID,
 		UserID: user.ID,
 	})
@@ -214,16 +194,6 @@ func (cfg *APIConfig) HandlerUpdateListingStatus(w http.ResponseWriter, r *http.
 		return
 	}
 
-	//Permission check
-	isListingOwner, err := utils.IsListingOwner(cfg.DB, r, listingID, user.ID)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking listing owner: %v", err))
-	}
-	if !isListingOwner {
-		respondWithError(w, http.StatusForbidden, "user is not the owner of the listing")
-		return
-	}
-
 	type parameters struct {
 		Status string `json:"status"`
 	}
@@ -231,7 +201,7 @@ func (cfg *APIConfig) HandlerUpdateListingStatus(w http.ResponseWriter, r *http.
 
 	params := parameters{}
 
-	err = decoder.Decode(&params)
+	err := decoder.Decode(&params)
 
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("error parsing json: %v", err))
@@ -265,16 +235,6 @@ func (cfg *APIConfig) HandlerUploadListingImages(w http.ResponseWriter, r *http.
 
 	if errMsg != "" {
 		respondWithError(w, http.StatusBadRequest, errMsg)
-		return
-	}
-
-	//Permission check
-	isListingOwner, err := utils.IsListingOwner(cfg.DB, r, listingID, user.ID)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking listing owner: %v", err))
-	}
-	if !isListingOwner {
-		respondWithError(w, http.StatusForbidden, "user is not the owner of the listing")
 		return
 	}
 

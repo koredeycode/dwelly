@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -14,31 +13,11 @@ import (
 )
 
 func (cfg *APIConfig) HandlerCreateInquiryMessage(w http.ResponseWriter, r *http.Request, user database.User) {
-	listingIDStr := chi.URLParam(r, "listingId")
-
-	listingId, errMsg := utils.GetUUIDParam(listingIDStr, "listing")
-
-	if errMsg != "" {
-		respondWithError(w, http.StatusBadRequest, errMsg)
-		return
-	}
-
 	inquiryIDStr := chi.URLParam(r, "inquiryId")
 	inquiryId, errMsg := utils.GetUUIDParam(inquiryIDStr, "inquiry")
 
 	if errMsg != "" {
 		respondWithError(w, http.StatusBadRequest, errMsg)
-		return
-	}
-
-	//Permission check
-	isListingOwner, err := utils.IsListingOwner(cfg.DB, r, listingId, user.ID)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking listing owner: %v", err))
-	}
-
-	if !isListingOwner {
-		respondWithError(w, http.StatusForbidden, "user is not the owner of the listing")
 		return
 	}
 
@@ -49,7 +28,7 @@ func (cfg *APIConfig) HandlerCreateInquiryMessage(w http.ResponseWriter, r *http
 
 	params := parameters{}
 
-	err = decoder.Decode(&params)
+	err := decoder.Decode(&params)
 
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "error parsing json")
@@ -98,16 +77,6 @@ func (cfg *APIConfig) HandlerUpdateMessage(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	//Permission check
-	IsMessageSender, err := utils.IsMessageSender(cfg.DB, r, messageId, user.ID)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking message sender: %v", err))
-	}
-	if !IsMessageSender {
-		respondWithError(w, http.StatusForbidden, "user is not the sender of the message")
-		return
-	}
-
 	type parameters struct {
 		Content string `json:"content"`
 	}
@@ -115,7 +84,7 @@ func (cfg *APIConfig) HandlerUpdateMessage(w http.ResponseWriter, r *http.Reques
 
 	params := parameters{}
 
-	err = decoder.Decode(&params)
+	err := decoder.Decode(&params)
 
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "error parsing json")
