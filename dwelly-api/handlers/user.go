@@ -23,3 +23,21 @@ func (cfg *APIConfig) HandlerGetUserListings(w http.ResponseWriter, r *http.Requ
 	// Respond with the listings
 	respondWithJSON(w, http.StatusOK, models.DatabaseListingsToListings(user_listings))
 }
+
+func (cfg *APIConfig) HandlerUpdateUser(w http.ResponseWriter, r *http.Request, user database.User) {
+
+	// Respond with the updated user
+	respondWithJSON(w, http.StatusOK, models.DatabaseUserToUser(user))
+}
+
+func (cfg *APIConfig) HandlerDeleteUser(w http.ResponseWriter, r *http.Request, user database.User) {
+	// Delete the user
+	err := cfg.DB.DeleteUser(r.Context(), user.ID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error deleting user: %v", err))
+		return
+	}
+
+	// Respond with a success message
+	respondWithJSON(w, http.StatusOK, map[string]string{"message": "user deleted"})
+}

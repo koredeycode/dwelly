@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
-	"github.com/koredeycode/dwelly/dwelly-api/services"
+	"github.com/koredeycode/dwelly/dwelly-api/utils"
 	"github.com/koredeycode/dwelly/internal/database"
 )
 
@@ -28,7 +28,7 @@ func (cfg *APIConfig) HandlerAddListingImage(w http.ResponseWriter, r *http.Requ
 	}
 
 	//Permission check
-	isListingOwner, err := services.IsListingOwner(cfg.DB, r, listingId, user.ID)
+	isListingOwner, err := utils.IsListingOwner(cfg.DB, r, listingId, user.ID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking listing owner: %v", err))
 	}

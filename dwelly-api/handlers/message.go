@@ -9,37 +9,30 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"github.com/koredeycode/dwelly/dwelly-api/models"
-	"github.com/koredeycode/dwelly/dwelly-api/services"
+	"github.com/koredeycode/dwelly/dwelly-api/utils"
 	"github.com/koredeycode/dwelly/internal/database"
 )
 
 func (cfg *APIConfig) HandlerCreateInquiryMessage(w http.ResponseWriter, r *http.Request, user database.User) {
-	listingIDStr := chi.URLParam(r, "listingId")
-	if listingIDStr == "" {
-		respondWithError(w, http.StatusBadRequest, "missing listing ID")
-		return
-	}
-	listingId, err := uuid.Parse(listingIDStr)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "invalid listing ID")
+	listingIDStr := chi.URLParam(r, "inquiryId")
 
+	listingId, errMsg := utils.GetUUIDParam(listingIDStr, "listing")
+
+	if errMsg != "" {
+		respondWithError(w, http.StatusBadRequest, errMsg)
 		return
 	}
 
 	inquiryIDStr := chi.URLParam(r, "inquiryId")
-	if inquiryIDStr == "" {
-		respondWithError(w, http.StatusBadRequest, "missing inquiry ID")
-		return
-	}
+	inquiryId, errMsg := utils.GetUUIDParam(inquiryIDStr, "inquiry")
 
-	inquiryId, err := uuid.Parse(inquiryIDStr)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "invalid inquiry ID")
+	if errMsg != "" {
+		respondWithError(w, http.StatusBadRequest, errMsg)
 		return
 	}
 
 	//Permission check
-	isListingOwner, err := services.IsListingOwner(cfg.DB, r, listingId, user.ID)
+	isListingOwner, err := utils.IsListingOwner(cfg.DB, r, listingId, user.ID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking listing owner: %v", err))
 	}
@@ -80,14 +73,11 @@ func (cfg *APIConfig) HandlerCreateInquiryMessage(w http.ResponseWriter, r *http
 
 // to do: authorization should be handled, inquiry owner should be able to get the messages and listing owner tied to the inquiry
 func (cfg *APIConfig) HandlerGetInquiryMessages(w http.ResponseWriter, r *http.Request, user database.User) {
-	inquiryIdStr := chi.URLParam(r, "inquiryId")
-	if inquiryIdStr == "" {
-		respondWithError(w, http.StatusBadRequest, "inquiryId is required")
-		return
-	}
-	inquiryId, err := uuid.Parse(inquiryIdStr)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "invalid inquiryId")
+	inquiryIDStr := chi.URLParam(r, "inquiryId")
+	inquiryId, errMsg := utils.GetUUIDParam(inquiryIDStr, "inquiry")
+
+	if errMsg != "" {
+		respondWithError(w, http.StatusBadRequest, errMsg)
 		return
 	}
 	messages, err := cfg.DB.GetMessagesByInquiry(r.Context(), inquiryId)
@@ -99,19 +89,17 @@ func (cfg *APIConfig) HandlerGetInquiryMessages(w http.ResponseWriter, r *http.R
 }
 
 func (cfg *APIConfig) HandlerUpdateMessage(w http.ResponseWriter, r *http.Request, user database.User) {
-	messageIdStr := chi.URLParam(r, "messageId")
-	if messageIdStr == "" {
-		respondWithError(w, http.StatusBadRequest, "messageId is required")
-		return
-	}
-	messageId, err := uuid.Parse(messageIdStr)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "invalid messageId")
+	messageIDStr := chi.URLParam(r, "messageId")
+
+	messageId, errMsg := utils.GetUUIDParam(messageIDStr, "message")
+
+	if errMsg != "" {
+		respondWithError(w, http.StatusBadRequest, errMsg)
 		return
 	}
 
 	//Permission check
-	IsMessageSender, err := services.IsMessageSender(cfg.DB, r, messageId, user.ID)
+	IsMessageSender, err := utils.IsMessageSender(cfg.DB, r, messageId, user.ID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking message sender: %v", err))
 	}
@@ -147,17 +135,15 @@ func (cfg *APIConfig) HandlerUpdateMessage(w http.ResponseWriter, r *http.Reques
 
 // to do: authorization should be handled, sender of mssage should be able to delete the message
 func (cfg *APIConfig) HandlerDeleteMessage(w http.ResponseWriter, r *http.Request, user database.User) {
-	messageIdStr := chi.URLParam(r, "messageId")
-	if messageIdStr == "" {
-		respondWithError(w, http.StatusBadRequest, "messageId is required")
+	messageIDStr := chi.URLParam(r, "messageId")
+
+	messageId, errMsg := utils.GetUUIDParam(messageIDStr, "message")
+
+	if errMsg != "" {
+		respondWithError(w, http.StatusBadRequest, errMsg)
 		return
 	}
-	messageId, err := uuid.Parse(messageIdStr)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "invalid messageId")
-		return
-	}
-	err = cfg.DB.DeleteMessage(r.Context(), database.DeleteMessageParams{
+	err := cfg.DB.DeleteMessage(r.Context(), database.DeleteMessageParams{
 		ID: messageId,
 	})
 	if err != nil {

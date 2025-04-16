@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/koredeycode/dwelly/dwelly-api/models"
-	"github.com/koredeycode/dwelly/dwelly-api/services"
+	"github.com/koredeycode/dwelly/dwelly-api/utils"
 	"github.com/koredeycode/dwelly/internal/database"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -84,7 +84,7 @@ func (cfg *APIConfig) HandlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//handle authentication
-	token, err := services.GenerateJWT(user.ID.String())
+	token, err := utils.GenerateJWT(user.ID.String())
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to generate token")
 		return

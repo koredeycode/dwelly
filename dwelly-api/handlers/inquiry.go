@@ -11,19 +11,17 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"github.com/koredeycode/dwelly/dwelly-api/models"
-	"github.com/koredeycode/dwelly/dwelly-api/services"
+	"github.com/koredeycode/dwelly/dwelly-api/utils"
 	"github.com/koredeycode/dwelly/internal/database"
 )
 
 func (cfg *APIConfig) HandlerCreateListingInquiry(w http.ResponseWriter, r *http.Request, user database.User) {
 	listingIDStr := chi.URLParam(r, "listingId")
-	if listingIDStr == "" {
-		respondWithError(w, http.StatusBadRequest, "missing listing ID")
-		return
-	}
-	listingId, err := uuid.Parse(listingIDStr)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "invalid listing ID")
+
+	listingId, errMsg := utils.GetUUIDParam(listingIDStr, "listing")
+
+	if errMsg != "" {
+		respondWithError(w, http.StatusBadRequest, errMsg)
 		return
 	}
 
@@ -35,7 +33,7 @@ func (cfg *APIConfig) HandlerCreateListingInquiry(w http.ResponseWriter, r *http
 
 	params := parameters{}
 
-	err = decoder.Decode(&params)
+	err := decoder.Decode(&params)
 
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "error parsing json")
@@ -76,35 +74,29 @@ func (cfg *APIConfig) HandlerCreateListingInquiry(w http.ResponseWriter, r *http
 // to do: authorization of current user should be handled, sender of inquiry and listing own should be able to see the inquiry
 func (cfg *APIConfig) HandlerGetInquiry(w http.ResponseWriter, r *http.Request, user database.User) {
 	listingIDStr := chi.URLParam(r, "inquiryId")
-	if listingIDStr == "" {
-		respondWithError(w, http.StatusBadRequest, "missing listing ID")
-		return
-	}
-	listingId, err := uuid.Parse(listingIDStr)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "invalid listing ID")
+
+	listingId, errMsg := utils.GetUUIDParam(listingIDStr, "listing")
+
+	if errMsg != "" {
+		respondWithError(w, http.StatusBadRequest, errMsg)
 		return
 	}
 
 	inquiryIDStr := chi.URLParam(r, "inquiryId")
-	if inquiryIDStr == "" {
-		respondWithError(w, http.StatusBadRequest, "missing inquiry ID")
-		return
-	}
+	inquiryId, errMsg := utils.GetUUIDParam(inquiryIDStr, "inquiry")
 
-	inquiryId, err := uuid.Parse(inquiryIDStr)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "invalid inquiry ID")
+	if errMsg != "" {
+		respondWithError(w, http.StatusBadRequest, errMsg)
 		return
 	}
 
 	//Permission check
-	isInquirySender, err := services.IsInquirySender(cfg.DB, r, inquiryId, user.ID)
+	isInquirySender, err := utils.IsInquirySender(cfg.DB, r, inquiryId, user.ID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking inquiry sender: %v", err))
 	}
 
-	isListingOwner, err := services.IsListingOwner(cfg.DB, r, listingId, user.ID)
+	isListingOwner, err := utils.IsListingOwner(cfg.DB, r, listingId, user.ID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking listing owner: %v", err))
 	}
@@ -127,17 +119,14 @@ func (cfg *APIConfig) HandlerGetInquiry(w http.ResponseWriter, r *http.Request, 
 // to do: authorization of current user should be handled, listing owner should be able to see the inquiries for their listing
 func (cfg *APIConfig) HandlerGetListingInquiries(w http.ResponseWriter, r *http.Request, user database.User) {
 	listingIDStr := chi.URLParam(r, "listingId")
-	if listingIDStr == "" {
-		respondWithError(w, http.StatusBadRequest, "missing listing ID")
-		return
-	}
-	listingId, err := uuid.Parse(listingIDStr)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "invalid listing ID")
+	listingId, errMsg := utils.GetUUIDParam(listingIDStr, "listing")
+
+	if errMsg != "" {
+		respondWithError(w, http.StatusBadRequest, errMsg)
 		return
 	}
 	//Permission check
-	isListingOwner, err := services.IsListingOwner(cfg.DB, r, listingId, user.ID)
+	isListingOwner, err := utils.IsListingOwner(cfg.DB, r, listingId, user.ID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking listing owner: %v", err))
 	}
@@ -158,32 +147,25 @@ func (cfg *APIConfig) HandlerGetListingInquiries(w http.ResponseWriter, r *http.
 
 // to do: authorization of current user should be handled, sender of inquiry and listing own should be able to update the inquiry
 func (cfg *APIConfig) HandlerUpdateInquiryStatus(w http.ResponseWriter, r *http.Request, user database.User) {
-	listingIDStr := chi.URLParam(r, "listingId")
-	if listingIDStr == "" {
-		respondWithError(w, http.StatusBadRequest, "missing listing ID")
-		return
-	}
-	listingId, err := uuid.Parse(listingIDStr)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "invalid listing ID")
+	listingIDStr := chi.URLParam(r, "inquiryId")
 
+	listingId, errMsg := utils.GetUUIDParam(listingIDStr, "listing")
+
+	if errMsg != "" {
+		respondWithError(w, http.StatusBadRequest, errMsg)
 		return
 	}
 
 	inquiryIDStr := chi.URLParam(r, "inquiryId")
-	if inquiryIDStr == "" {
-		respondWithError(w, http.StatusBadRequest, "missing inquiry ID")
-		return
-	}
+	inquiryId, errMsg := utils.GetUUIDParam(inquiryIDStr, "inquiry")
 
-	inquiryId, err := uuid.Parse(inquiryIDStr)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "invalid inquiry ID")
+	if errMsg != "" {
+		respondWithError(w, http.StatusBadRequest, errMsg)
 		return
 	}
 
 	//Permission check
-	isListingOwner, err := services.IsListingOwner(cfg.DB, r, listingId, user.ID)
+	isListingOwner, err := utils.IsListingOwner(cfg.DB, r, listingId, user.ID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking listing owner: %v", err))
 	}
@@ -229,19 +211,17 @@ func (cfg *APIConfig) HandlerUpdateInquiryStatus(w http.ResponseWriter, r *http.
 
 // to do: authorization of current user should be handled, sender of inquiry and listing own should be able to delete the inquiry
 func (cfg *APIConfig) HandlerDeleteInquiry(w http.ResponseWriter, r *http.Request, user database.User) {
-	inquiryIdStr := chi.URLParam(r, "inquiryId")
-	if inquiryIdStr == "" {
-		respondWithError(w, http.StatusBadRequest, "missing inquiry ID")
-		return
-	}
-	inquiryId, err := uuid.Parse(inquiryIdStr)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "invalid inquiry ID")
+
+	inquiryIDStr := chi.URLParam(r, "inquiryId")
+	inquiryId, errMsg := utils.GetUUIDParam(inquiryIDStr, "inquiry")
+
+	if errMsg != "" {
+		respondWithError(w, http.StatusBadRequest, errMsg)
 		return
 	}
 
 	//Permission check
-	isInquirySender, err := services.IsInquirySender(cfg.DB, r, inquiryId, user.ID)
+	isInquirySender, err := utils.IsInquirySender(cfg.DB, r, inquiryId, user.ID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking inquiry sender: %v", err))
 	}
