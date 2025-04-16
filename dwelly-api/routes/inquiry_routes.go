@@ -10,13 +10,13 @@ func InquiryRoutes(apiCfg *handlers.APIConfig) chi.Router {
 
 	r.Group(func(r chi.Router) {
 
-		r.Get("/{inquiryId}", apiCfg.MiddlewareAuth(apiCfg.HandlerGetInquiry))
+		r.Get("/{inquiryId}", apiCfg.Auth(apiCfg.HandlerGetInquiry))
 
-		r.Patch("/{inquiryId}/status", apiCfg.MiddlewareAuth(apiCfg.HandlerUpdateInquiryStatus))
-		r.Delete("/{inquiryId}", apiCfg.MiddlewareAuth(apiCfg.HandlerDeleteInquiry))
+		r.Patch("/{inquiryId}/status", apiCfg.Auth(apiCfg.HandlerUpdateInquiryStatus, apiCfg.ListingOwnerAuthorization))
+		r.Delete("/{inquiryId}", apiCfg.Auth(apiCfg.HandlerDeleteInquiry, apiCfg.InquirySenderAuthorization))
 
-		r.Get("/{inquiryId}/messages", apiCfg.MiddlewareAuth(apiCfg.HandlerGetInquiryMessages))
-		r.Post("/{inquiryId}/messages", apiCfg.MiddlewareAuth(apiCfg.HandlerCreateInquiryMessage))
+		r.Get("/{inquiryId}/messages", apiCfg.Auth(apiCfg.HandlerGetInquiryMessages))
+		r.Post("/{inquiryId}/messages", apiCfg.Auth(apiCfg.HandlerCreateInquiryMessage, apiCfg.InquirySenderOrListingOwnerAuthorization))
 	})
 
 	return r

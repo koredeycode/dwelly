@@ -10,23 +10,24 @@ func ListingRoutes(apiCfg *handlers.APIConfig) chi.Router {
 
 	r.Group(func(r chi.Router) {
 		// could be merged?
-		r.Get("/search", apiCfg.MiddlewareAuth(apiCfg.HandlerSearchListings))
-		r.Get("/", apiCfg.MiddlewareAuth(apiCfg.HandlerGetListings))
+		r.Get("/search", apiCfg.Auth(apiCfg.HandlerSearchListings))
+		r.Get("/", apiCfg.Auth(apiCfg.HandlerGetListings))
 
-		r.Post("/", apiCfg.MiddlewareAuth(apiCfg.HandlerCreateListing))
+		r.Post("/", apiCfg.Auth(apiCfg.HandlerCreateListing))
 		r.Get("/{listingId}", apiCfg.HandlerGetListing)
-		r.Delete("/{listingId}", apiCfg.MiddlewareAuth(apiCfg.HandlerDeleteListing))
+		r.Delete("/{listingId}", apiCfg.Auth(apiCfg.HandlerDeleteListing, apiCfg.ListingOwnerAuthorization))
 
-		r.Put("/{listingId}", apiCfg.MiddlewareAuth(apiCfg.HandlerUpdateListing))
-		r.Patch("/{listingId}/status", apiCfg.MiddlewareAuth(apiCfg.HandlerUpdateListingStatus))
+		r.Put("/{listingId}", apiCfg.Auth(apiCfg.HandlerUpdateListing, apiCfg.ListingOwnerAuthorization))
+		r.Patch("/{listingId}/status", apiCfg.Auth(apiCfg.HandlerUpdateListingStatus, apiCfg.ListingOwnerAuthorization))
 
-		r.Post("/{listingId}/images", apiCfg.MiddlewareAuth(apiCfg.HandlerAddListingImage))
-		r.Post("/{listingId}/images/upload", apiCfg.MiddlewareAuth(apiCfg.HandlerUploadListingImages))
+		r.Post("/{listingId}/images", apiCfg.Auth(apiCfg.HandlerAddListingImage, apiCfg.ListingOwnerAuthorization))
+		r.Post("/{listingId}/images/upload", apiCfg.Auth(apiCfg.HandlerUploadListingImages, apiCfg.ListingOwnerAuthorization))
 
-		r.Delete("/images/{imageId}", apiCfg.MiddlewareAuth(apiCfg.HandlerDeleteListingImage))
+		r.Delete("/images/{imageId}", apiCfg.Auth(apiCfg.HandlerDeleteListingImage, apiCfg.ListingOwnerAuthorization))
+		r.Delete("/{listingId}/images/{imageId}", apiCfg.Auth(apiCfg.HandlerDeleteListingImage, apiCfg.ListingOwnerAuthorization))
 
-		r.Get("{listingId}/inquiries", apiCfg.MiddlewareAuth(apiCfg.HandlerGetListingInquiries))
-		r.Post("{listingId}/inquiries/", apiCfg.MiddlewareAuth(apiCfg.HandlerCreateListingInquiry))
+		r.Get("/{listingId}/inquiries", apiCfg.Auth(apiCfg.HandlerGetListingInquiries, apiCfg.ListingOwnerAuthorization))
+		r.Post("/{listingId}/inquiries/", apiCfg.Auth(apiCfg.HandlerCreateListingInquiry, apiCfg.ListingOwnerAuthorization))
 
 	})
 

@@ -57,7 +57,7 @@ func (cfg *APIConfig) HandlerCreateListing(w http.ResponseWriter, r *http.Reques
 }
 
 func (cfg *APIConfig) HandlerGetListing(w http.ResponseWriter, r *http.Request) {
-	listingIDStr := chi.URLParam(r, "inquiryId")
+	listingIDStr := chi.URLParam(r, "listingId")
 
 	listingId, errMsg := utils.GetUUIDParam(listingIDStr, "listing")
 
@@ -114,7 +114,7 @@ func (api *APIConfig) HandlerSearchListings(w http.ResponseWriter, r *http.Reque
 
 // to do: authorization should be handled, listing owner should be able to update the listing
 func (cfg *APIConfig) HandlerUpdateListing(w http.ResponseWriter, r *http.Request, user database.User) {
-	listingIDStr := chi.URLParam(r, "inquiryId")
+	listingIDStr := chi.URLParam(r, "listingId")
 
 	listingID, errMsg := utils.GetUUIDParam(listingIDStr, "listing")
 
@@ -173,7 +173,7 @@ func (cfg *APIConfig) HandlerUpdateListing(w http.ResponseWriter, r *http.Reques
 
 // to do: authorization should be handled, listing owner should be able to delete the listing
 func (cfg *APIConfig) HandlerDeleteListing(w http.ResponseWriter, r *http.Request, user database.User) {
-	listingIDStr := chi.URLParam(r, "inquiryId")
+	listingIDStr := chi.URLParam(r, "listingId")
 
 	listingID, errMsg := utils.GetUUIDParam(listingIDStr, "listing")
 
@@ -205,7 +205,7 @@ func (cfg *APIConfig) HandlerDeleteListing(w http.ResponseWriter, r *http.Reques
 
 // to do: authorization should be handled, listing owner should be able to update the listing status
 func (cfg *APIConfig) HandlerUpdateListingStatus(w http.ResponseWriter, r *http.Request, user database.User) {
-	listingIDStr := chi.URLParam(r, "inquiryId")
+	listingIDStr := chi.URLParam(r, "listingId")
 
 	listingID, errMsg := utils.GetUUIDParam(listingIDStr, "listing")
 
@@ -259,7 +259,7 @@ func (cfg *APIConfig) HandlerUpdateListingStatus(w http.ResponseWriter, r *http.
 }
 
 func (cfg *APIConfig) HandlerUploadListingImages(w http.ResponseWriter, r *http.Request, user database.User) {
-	listingIDStr := chi.URLParam(r, "inquiryId")
+	listingIDStr := chi.URLParam(r, "listingId")
 
 	listingID, errMsg := utils.GetUUIDParam(listingIDStr, "listing")
 

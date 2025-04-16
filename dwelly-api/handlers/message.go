@@ -14,7 +14,7 @@ import (
 )
 
 func (cfg *APIConfig) HandlerCreateInquiryMessage(w http.ResponseWriter, r *http.Request, user database.User) {
-	listingIDStr := chi.URLParam(r, "inquiryId")
+	listingIDStr := chi.URLParam(r, "listingId")
 
 	listingId, errMsg := utils.GetUUIDParam(listingIDStr, "listing")
 

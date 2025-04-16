@@ -73,7 +73,7 @@ func (cfg *APIConfig) HandlerCreateListingInquiry(w http.ResponseWriter, r *http
 
 // to do: authorization of current user should be handled, sender of inquiry and listing own should be able to see the inquiry
 func (cfg *APIConfig) HandlerGetInquiry(w http.ResponseWriter, r *http.Request, user database.User) {
-	listingIDStr := chi.URLParam(r, "inquiryId")
+	listingIDStr := chi.URLParam(r, "listingId")
 
 	listingId, errMsg := utils.GetUUIDParam(listingIDStr, "listing")
 
@@ -147,7 +147,7 @@ func (cfg *APIConfig) HandlerGetListingInquiries(w http.ResponseWriter, r *http.
 
 // to do: authorization of current user should be handled, sender of inquiry and listing own should be able to update the inquiry
 func (cfg *APIConfig) HandlerUpdateInquiryStatus(w http.ResponseWriter, r *http.Request, user database.User) {
-	listingIDStr := chi.URLParam(r, "inquiryId")
+	listingIDStr := chi.URLParam(r, "listingId")
 
 	listingId, errMsg := utils.GetUUIDParam(listingIDStr, "listing")
 

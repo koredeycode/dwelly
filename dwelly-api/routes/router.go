@@ -36,7 +36,6 @@ func SetUpRouter(apiCfg *handlers.APIConfig) *chi.Mux {
 		api.Mount("/listings", ListingRoutes(apiCfg))
 		api.Mount("/inquiries", InquiryRoutes(apiCfg))
 		api.Mount("/messages", MessageRoutes(apiCfg))
-		api.Mount("/images", ImageRoutes(apiCfg))
 	})
 
 	return router

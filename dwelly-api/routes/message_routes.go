@@ -10,9 +10,9 @@ func MessageRoutes(apiCfg *handlers.APIConfig) chi.Router {
 
 	r.Group(func(r chi.Router) {
 
-		r.Delete("/{messageId}", apiCfg.MiddlewareAuth(apiCfg.HandlerDeleteMessage))
+		r.Delete("/{messageId}", apiCfg.Auth(apiCfg.HandlerDeleteMessage, apiCfg.MessageSenderAuthorization))
 		// to do
-		r.Put("/{messageId}", apiCfg.MiddlewareAuth(apiCfg.HandlerUpdateMessage))
+		r.Put("/{messageId}", apiCfg.Auth(apiCfg.HandlerUpdateMessage, apiCfg.MessageSenderAuthorization))
 	})
 
 	return r
