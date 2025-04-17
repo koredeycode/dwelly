@@ -79,7 +79,7 @@ func (cfg *APIConfig) HandlerGetListing(w http.ResponseWriter, r *http.Request) 
 	respondWithJSON(w, http.StatusOK, models.DatabaseListingToListing(listing))
 }
 
-func (cfg *APIConfig) HandlerGetListings(w http.ResponseWriter, r *http.Request, user database.User) {
+func (cfg *APIConfig) HandlerGetListings(w http.ResponseWriter, r *http.Request) {
 	listings, err := cfg.DB.ListAllListings(r.Context(), database.ListAllListingsParams{
 		Limit:  10,
 		Offset: 0,
@@ -95,7 +95,7 @@ func (cfg *APIConfig) HandlerGetListings(w http.ResponseWriter, r *http.Request,
 
 }
 
-func (api *APIConfig) HandlerSearchListings(w http.ResponseWriter, r *http.Request, user database.User) {
+func (api *APIConfig) HandlerSearchListings(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 
 	location := query.Get("location")

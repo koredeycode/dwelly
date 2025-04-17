@@ -52,7 +52,8 @@ type Message struct {
 
 type User struct {
 	ID           uuid.UUID
-	Name         string
+	FirstName    string
+	LastName     string
 	Email        string
 	PasswordHash string
 	CreatedAt    time.Time

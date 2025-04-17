@@ -10,8 +10,8 @@ func ListingRoutes(apiCfg *handlers.APIConfig) chi.Router {
 
 	r.Group(func(r chi.Router) {
 		// could be merged?
-		r.Get("/search", apiCfg.Auth(apiCfg.HandlerSearchListings))
-		r.Get("/", apiCfg.Auth(apiCfg.HandlerGetListings))
+		r.Get("/search", apiCfg.HandlerSearchListings)
+		r.Get("/", apiCfg.HandlerGetListings)
 
 		r.Post("/", apiCfg.Auth(apiCfg.HandlerCreateListing))
 		r.Get("/{listingId}", apiCfg.HandlerGetListing)

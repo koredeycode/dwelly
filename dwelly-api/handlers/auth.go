@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -16,9 +15,10 @@ import (
 
 func (cfg *APIConfig) HandlerRegisterUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Name     string `json:"name" validate:"required"`
-		Password string `json:"password" validate:"required,min=6"`
-		Email    string `json:"email" validate:"required,email"`
+		FirstName string `json:"first_name" validate:"required"`
+		LastName  string `json:"last_name" validate:"required"`
+		Password  string `json:"password" validate:"required,min=6"`
+		Email     string `json:"email" validate:"required,email"`
 	}
 	decoder := json.NewDecoder(r.Body)
 
@@ -42,7 +42,8 @@ func (cfg *APIConfig) HandlerRegisterUser(w http.ResponseWriter, r *http.Request
 
 	user, err := cfg.DB.CreateUser(r.Context(), database.CreateUserParams{
 		ID:           uuid.New(),
-		Name:         params.Name,
+		FirstName:    params.FirstName,
+		LastName:     params.LastName,
 		Email:        params.Email,
 		PasswordHash: string(hash),
 		CreatedAt:    time.Now().UTC(),
@@ -57,8 +58,10 @@ func (cfg *APIConfig) HandlerRegisterUser(w http.ResponseWriter, r *http.Request
 }
 
 // Handle user logging in
+// to do: do not return new token if user already has a valid token before could be saved to redis
+// just return the previous valid token
 func (cfg *APIConfig) HandlerLoginUser(w http.ResponseWriter, r *http.Request) {
-	apiCfg.Auth {
+	type parameters struct {
 		Password string `json:"password" validate:"required"`
 		Email    string `json:"email" validate:"required"`
 	}
@@ -71,24 +74,17 @@ func (cfg *APIConfig) HandlerLoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := cfg.Validate.Struct(params); err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
-		return
-	}
-
 	user, err := cfg.DB.GetUserByEmail(r.Context(), params.Email)
 	if err != nil {
 		respondWithError(w, http.StatusForbidden, fmt.Sprintf("User email doesn't exist: %v", err))
 		return
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(params.Password), bcrypt.DefaultCost)
+	_, err = bcrypt.GenerateFromPassword([]byte(params.Password), bcrypt.DefaultCost)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Could not hash password: %v", err))
 		return
 	}
-
-	log.Print(user.PasswordHash, "\n", string(hash))
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(params.Password))
 
