@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
@@ -116,6 +117,13 @@ func (api *APIConfig) HandlerSearchListings(w http.ResponseWriter, r *http.Reque
 	respondWithJSON(w, http.StatusOK, models.DatabaseListingsToListings(listings))
 }
 
+func valueOrDefault(oldValue, newValue string) string {
+	if strings.TrimSpace(newValue) == "" {
+		return oldValue
+	}
+	return newValue
+}
+
 // to do: authorization should be handled, listing owner should be able to update the listing
 func (cfg *APIConfig) HandlerUpdateListing(w http.ResponseWriter, r *http.Request, user database.User) {
 	listingIDStr := chi.URLParam(r, "listingId")
@@ -128,12 +136,12 @@ func (cfg *APIConfig) HandlerUpdateListing(w http.ResponseWriter, r *http.Reques
 	}
 
 	type parameters struct {
-		Intent      *string `json:"intent" validate:"required"`
-		Title       *string `json:"title" validate:"required"`
-		Description *string `json:"description" validate:"required"`
-		Price       *string `json:"price" validate:"required"`
-		Location    *string `json:"location" validate:"required"`
-		Category    *string `json:"category" validate:"required"`
+		Intent      string `json:"intent"`
+		Title       string `json:"title"`
+		Description string `json:"description"`
+		Price       string `json:"price"`
+		Location    string `json:"location"`
+		Category    string `json:"category"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -146,18 +154,20 @@ func (cfg *APIConfig) HandlerUpdateListing(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err := cfg.Validate.Struct(params); err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
+	currentListing, err := cfg.DB.GetListingByID(r.Context(), listingID)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, fmt.Sprintf("Listing not found: %v", err))
 		return
 	}
+
 	listing, err := cfg.DB.UpdateListing(r.Context(), database.UpdateListingParams{
 		ID:          listingID,
-		Intent:      *params.Intent,
-		Title:       *params.Title,
-		Description: *params.Description,
-		Price:       *params.Price,
-		Location:    *params.Location,
-		Category:    *params.Category,
+		Intent:      valueOrDefault(currentListing.Intent, params.Intent),
+		Title:       valueOrDefault(currentListing.Title, params.Title),
+		Description: valueOrDefault(currentListing.Description, params.Description),
+		Price:       valueOrDefault(currentListing.Price, params.Price),
+		Location:    valueOrDefault(currentListing.Location, params.Location),
+		Category:    valueOrDefault(currentListing.Category, params.Category),
 		UpdatedAt:   time.Now(),
 	})
 

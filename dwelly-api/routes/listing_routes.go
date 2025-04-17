@@ -17,7 +17,7 @@ func ListingRoutes(apiCfg *handlers.APIConfig) chi.Router {
 		r.Get("/{listingId}", apiCfg.HandlerGetListing)
 		r.Delete("/{listingId}", apiCfg.Auth(apiCfg.HandlerDeleteListing, apiCfg.ListingOwnerAuthorization))
 
-		r.Put("/{listingId}", apiCfg.Auth(apiCfg.HandlerUpdateListing, apiCfg.ListingOwnerAuthorization))
+		r.Patch("/{listingId}", apiCfg.Auth(apiCfg.HandlerUpdateListing, apiCfg.ListingOwnerAuthorization))
 		r.Patch("/{listingId}/status", apiCfg.Auth(apiCfg.HandlerUpdateListingStatus, apiCfg.ListingOwnerAuthorization))
 
 		r.Post("/{listingId}/images", apiCfg.Auth(apiCfg.HandlerAddListingImage, apiCfg.ListingOwnerAuthorization))

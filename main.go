@@ -36,12 +36,13 @@ func main() {
 	db := database.New(conn)
 	redisClient := redis.InitRedis()
 	cloudinaryClient := cloudinaryutil.NewClient()
+	validate := validator.New()
 
 	apiCfg := handlers.APIConfig{
 		DB:         db,
 		Redis:      redisClient,
 		Cloudinary: cloudinaryClient,
-		Validate:   validator.New(),
+		Validate:   validate,
 	}
 
 	router := routes.SetUpRouter(&apiCfg)
