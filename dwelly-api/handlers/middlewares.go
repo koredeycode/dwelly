@@ -40,7 +40,7 @@ func (cfg *APIConfig) AuthenticationMiddleware(handler authHandler) http.Handler
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
-		isBlacklisted, err := cfg.Redis.Exists(r.Context(), "blacklist:"+tokenString).Result()
+		isBlacklisted, err := cfg.Redis.Exists(r.Context(), "dwelly_blacklisted_token:"+tokenString).Result()
 		if err != nil {
 			respondWithError(w, http.StatusInternalServerError, "Redis error")
 			return

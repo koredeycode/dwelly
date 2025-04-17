@@ -58,8 +58,6 @@ func (cfg *APIConfig) HandlerRegisterUser(w http.ResponseWriter, r *http.Request
 }
 
 // Handle user logging in
-// to do: do not return new token if user already has a valid token before could be saved to redis
-// just return the previous valid token
 func (cfg *APIConfig) HandlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Password string `json:"password" validate:"required"`
@@ -71,6 +69,11 @@ func (cfg *APIConfig) HandlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Invalid request payload: %v", err))
+		return
+	}
+
+	if err := cfg.Validate.Struct(params); err != nil {
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
 		return
 	}
 
@@ -93,10 +96,28 @@ func (cfg *APIConfig) HandlerLoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	redisKey := fmt.Sprintf("dwelly-user-token:%s", user.ID.String())
+
+	existingToken, err := cfg.Redis.Get(r.Context(), redisKey).Result()
+
+	if err == nil && existingToken != "" {
+		respondWithJSON(w, http.StatusOK, map[string]interface{}{
+			"token": existingToken,
+		})
+		return
+	}
+
 	//handle authentication
 	token, err := utils.GenerateJWT(user.ID.String())
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to generate token: %v", err))
+		return
+	}
+
+	err = cfg.Redis.Set(r.Context(), redisKey, token, 72*time.Hour).Err()
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to store token in Redis: %v", err))
 		return
 	}
 
@@ -110,10 +131,6 @@ func (cfg *APIConfig) HandlerLoginUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg *APIConfig) HandlerLogoutUser(w http.ResponseWriter, r *http.Request, user database.User) {
-	// Invalidate the token by removing it from the database or cache
-	// This can be done by adding the token to a blacklist or simply ignoring it
-	// in your application logic.
-	// For this example, we'll just return a success message.
 	tokenString := r.Context().Value("token").(string)
 
 	expiration, err := utils.GetTokenExpiry(tokenString)
@@ -123,7 +140,7 @@ func (cfg *APIConfig) HandlerLogoutUser(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	err = cfg.Redis.Set(r.Context(), "blacklist:"+tokenString, "revoked", expiration).Err()
+	err = cfg.Redis.Set(r.Context(), "dwelly_blacklisted_token:"+tokenString, "revoked", expiration).Err()
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to blacklist token: %v", err))
 		return
