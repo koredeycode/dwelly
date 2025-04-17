@@ -23,17 +23,17 @@ type ListingLike interface {
 // implement the rest...
 
 type Listing struct {
-	ID          uuid.UUID `json:"id"`
-	UserID      uuid.UUID `json:"user_id"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
-	Intent      string    `json:"intent"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Price       string    `json:"price"`
-	Location    string    `json:"location"`
-	Category    string    `json:"category"`
-	Status      string    `json:"status"`
+	ID        uuid.UUID `json:"id"`
+	UserID    uuid.UUID `json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
+	// UpdatedAt   time.Time `json:"updated_at"`
+	Intent      string `json:"intent"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Price       string `json:"price"`
+	Location    string `json:"location"`
+	Category    string `json:"category"`
+	Status      string `json:"status"`
 
 	Images []string `json:"images"`
 }
@@ -41,10 +41,10 @@ type Listing struct {
 func DatabaseListingToListing[T ListingLike](l T) Listing {
 
 	return Listing{
-		ID:          l.GetID(),
-		UserID:      l.GetUserID(),
-		CreatedAt:   l.GetCreatedAt(),
-		UpdatedAt:   l.GetUpdatedAt(),
+		ID:        l.GetID(),
+		UserID:    l.GetUserID(),
+		CreatedAt: l.GetCreatedAt(),
+		// UpdatedAt:   l.GetUpdatedAt(),
 		Intent:      l.GetIntent(),
 		Title:       l.GetTitle(),
 		Description: l.GetDescription(),

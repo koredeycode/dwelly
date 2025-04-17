@@ -17,12 +17,12 @@ import (
 
 func (cfg *APIConfig) HandlerCreateListing(w http.ResponseWriter, r *http.Request, user database.User) {
 	type parameters struct {
-		Intent      string `json:"intent"`
-		Title       string `json:"title"`
-		Description string `json:"description"`
-		Price       string `json:"price"`
-		Location    string `json:"location"`
-		Category    string `json:"category"`
+		Intent      string `json:"intent" validate:"required"`
+		Title       string `json:"title" validate:"required"`
+		Description string `json:"description" validate:"required"`
+		Price       string `json:"price" validate:"required"`
+		Location    string `json:"location" validate:"required"`
+		Category    string `json:"category" validate:"required"`
 	}
 	decoder := json.NewDecoder(r.Body)
 
@@ -32,6 +32,11 @@ func (cfg *APIConfig) HandlerCreateListing(w http.ResponseWriter, r *http.Reques
 
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("error parsing json: %v", err))
+		return
+	}
+
+	if err := cfg.Validate.Struct(params); err != nil {
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
 		return
 	}
 	listing, err := cfg.DB.CreateListing(r.Context(), database.CreateListingParams{
@@ -123,12 +128,12 @@ func (cfg *APIConfig) HandlerUpdateListing(w http.ResponseWriter, r *http.Reques
 	}
 
 	type parameters struct {
-		Intent      *string `json:"intent"`
-		Title       *string `json:"title"`
-		Description *string `json:"description"`
-		Price       *string `json:"price"`
-		Location    *string `json:"location"`
-		Category    *string `json:"category"`
+		Intent      *string `json:"intent" validate:"required"`
+		Title       *string `json:"title" validate:"required"`
+		Description *string `json:"description" validate:"required"`
+		Price       *string `json:"price" validate:"required"`
+		Location    *string `json:"location" validate:"required"`
+		Category    *string `json:"category" validate:"required"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -141,6 +146,10 @@ func (cfg *APIConfig) HandlerUpdateListing(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	if err := cfg.Validate.Struct(params); err != nil {
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
+		return
+	}
 	listing, err := cfg.DB.UpdateListing(r.Context(), database.UpdateListingParams{
 		ID:          listingID,
 		Intent:      *params.Intent,
@@ -194,7 +203,7 @@ func (cfg *APIConfig) HandlerUpdateListingStatus(w http.ResponseWriter, r *http.
 	}
 
 	type parameters struct {
-		Status string `json:"status"`
+		Status string `json:"status" validate:"required"`
 	}
 	decoder := json.NewDecoder(r.Body)
 
@@ -206,6 +215,12 @@ func (cfg *APIConfig) HandlerUpdateListingStatus(w http.ResponseWriter, r *http.
 		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("error parsing json: %v", err))
 		return
 	}
+
+	if err := cfg.Validate.Struct(params); err != nil {
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
+		return
+	}
+
 	statuses := []string{"active", "negotiation", "completed"}
 
 	statusNotValid := !slices.Contains(statuses, params.Status)

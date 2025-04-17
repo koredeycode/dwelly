@@ -18,7 +18,7 @@ type InquiryLike interface {
 type Inquiry struct {
 	ID        uuid.UUID `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	// UpdatedAt time.Time `json:"updated_at"`
 	ListingID uuid.UUID `json:"listing_id"`
 	SenderID  uuid.UUID `json:"sender_id"`
 	Status    string    `json:"status"`
@@ -30,7 +30,7 @@ func DatabaseInquiryToInquiry[T InquiryLike](i T) Inquiry {
 	return Inquiry{
 		ID:        i.GetID(),
 		CreatedAt: i.GetCreatedAt(),
-		UpdatedAt: i.GetUpdatedAt(),
+		// UpdatedAt: i.GetUpdatedAt(),
 		ListingID: i.GetListingID(),
 		SenderID:  i.GetSenderID(),
 		Status:    i.GetStatus(),

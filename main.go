@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
 	"github.com/koredeycode/dwelly/dwelly-api/handlers"
 	"github.com/koredeycode/dwelly/dwelly-api/routes"
@@ -40,6 +41,7 @@ func main() {
 		DB:         db,
 		Redis:      redisClient,
 		Cloudinary: cloudinaryClient,
+		Validate:   validator.New(),
 	}
 
 	router := routes.SetUpRouter(&apiCfg)

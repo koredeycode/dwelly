@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -22,7 +23,7 @@ func (cfg *APIConfig) HandlerCreateInquiryMessage(w http.ResponseWriter, r *http
 	}
 
 	type parameters struct {
-		Content string `json:"content"`
+		Content string `json:"content" validate:"requred"`
 	}
 	decoder := json.NewDecoder(r.Body)
 
@@ -32,6 +33,11 @@ func (cfg *APIConfig) HandlerCreateInquiryMessage(w http.ResponseWriter, r *http
 
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "error parsing json")
+		return
+	}
+
+	if err := cfg.Validate.Struct(params); err != nil {
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
 		return
 	}
 	message, err := cfg.DB.CreateMessage(r.Context(), database.CreateMessageParams{
@@ -78,7 +84,7 @@ func (cfg *APIConfig) HandlerUpdateMessage(w http.ResponseWriter, r *http.Reques
 	}
 
 	type parameters struct {
-		Content string `json:"content"`
+		Content string `json:"content" validate:"required"`
 	}
 	decoder := json.NewDecoder(r.Body)
 
@@ -88,6 +94,11 @@ func (cfg *APIConfig) HandlerUpdateMessage(w http.ResponseWriter, r *http.Reques
 
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "error parsing json")
+		return
+	}
+
+	if err := cfg.Validate.Struct(params); err != nil {
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
 		return
 	}
 	message, err := cfg.DB.UpdateMessage(r.Context(), database.UpdateMessageParams{

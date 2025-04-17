@@ -26,7 +26,7 @@ func (cfg *APIConfig) HandlerCreateListingInquiry(w http.ResponseWriter, r *http
 	}
 
 	type parameters struct {
-		Message string `json:"message"`
+		Message string `json:"message" validate:"required"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -36,7 +36,12 @@ func (cfg *APIConfig) HandlerCreateListingInquiry(w http.ResponseWriter, r *http
 	err := decoder.Decode(&params)
 
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "error parsing json")
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("error parsing json: %v", err))
+		return
+	}
+
+	if err := cfg.Validate.Struct(params); err != nil {
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
 		return
 	}
 
@@ -122,7 +127,7 @@ func (cfg *APIConfig) HandlerUpdateInquiryStatus(w http.ResponseWriter, r *http.
 	}
 
 	type parameters struct {
-		Status string `json:"status"`
+		Status string `json:"status" validate:"required"`
 	}
 	decoder := json.NewDecoder(r.Body)
 
@@ -132,6 +137,11 @@ func (cfg *APIConfig) HandlerUpdateInquiryStatus(w http.ResponseWriter, r *http.
 
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("error parsing json: %v", err))
+		return
+	}
+
+	if err := cfg.Validate.Struct(params); err != nil {
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
 		return
 	}
 	statuses := []string{"active", "negotiation", "completed"}

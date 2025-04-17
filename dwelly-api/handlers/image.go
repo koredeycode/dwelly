@@ -27,7 +27,7 @@ func (cfg *APIConfig) HandlerAddListingImage(w http.ResponseWriter, r *http.Requ
 	}
 
 	type parameters struct {
-		ImageURL string `json:"image_url"`
+		ImageURL string `json:"image_url" validate:"required"`
 	}
 	decoder := json.NewDecoder(r.Body)
 
@@ -37,6 +37,11 @@ func (cfg *APIConfig) HandlerAddListingImage(w http.ResponseWriter, r *http.Requ
 
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("error parsing json: %v", err))
+		return
+	}
+
+	if err := cfg.Validate.Struct(params); err != nil {
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
 		return
 	}
 	_, err = cfg.DB.AddListingImage(r.Context(), database.AddListingImageParams{

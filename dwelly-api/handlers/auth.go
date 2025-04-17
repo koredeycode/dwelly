@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/koredeycode/dwelly/dwelly-api/models"
@@ -14,22 +16,27 @@ import (
 
 func (cfg *APIConfig) HandlerRegisterUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Name     string `json:"name"`
-		Password string `json:"password"`
-		Email    string `json:"email"`
+		Name     string `json:"name" validate:"required"`
+		Password string `json:"password" validate:"required,min=6"`
+		Email    string `json:"email" validate:"required,email"`
 	}
 	decoder := json.NewDecoder(r.Body)
 
 	params := parameters{}
 	err := decoder.Decode(&params)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Invalid request payload: %v", err))
+		return
+	}
+
+	if err := cfg.Validate.Struct(params); err != nil {
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
 		return
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(params.Password), bcrypt.DefaultCost)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Could not hash password")
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Could not hash password: %v", err))
 		return
 	}
 
@@ -38,10 +45,12 @@ func (cfg *APIConfig) HandlerRegisterUser(w http.ResponseWriter, r *http.Request
 		Name:         params.Name,
 		Email:        params.Email,
 		PasswordHash: string(hash),
+		CreatedAt:    time.Now().UTC(),
+		UpdatedAt:    time.Now().UTC(),
 	})
 
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Could not create user")
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Could not create user: %v", err))
 		return
 	}
 	respondWithJSON(w, http.StatusCreated, models.DatabaseUserToUser(user))
@@ -49,28 +58,33 @@ func (cfg *APIConfig) HandlerRegisterUser(w http.ResponseWriter, r *http.Request
 
 // Handle user logging in
 func (cfg *APIConfig) HandlerLoginUser(w http.ResponseWriter, r *http.Request) {
-	type parameters struct {
-		Password string `json:"password"`
-		Email    string `json:"email"`
+	apiCfg.Auth {
+		Password string `json:"password" validate:"required"`
+		Email    string `json:"email" validate:"required"`
 	}
 	decoder := json.NewDecoder(r.Body)
 
 	params := parameters{}
 	err := decoder.Decode(&params)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Invalid request payload: %v", err))
+		return
+	}
+
+	if err := cfg.Validate.Struct(params); err != nil {
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
 		return
 	}
 
 	user, err := cfg.DB.GetUserByEmail(r.Context(), params.Email)
 	if err != nil {
-		respondWithError(w, http.StatusForbidden, "User email doesn't exist")
+		respondWithError(w, http.StatusForbidden, fmt.Sprintf("User email doesn't exist: %v", err))
 		return
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(params.Password), bcrypt.DefaultCost)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Could not hash password")
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Could not hash password: %v", err))
 		return
 	}
 
@@ -79,14 +93,14 @@ func (cfg *APIConfig) HandlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(params.Password))
 
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Invalid password")
+		respondWithError(w, http.StatusUnauthorized, fmt.Sprintf("Invalid password: %v", err))
 		return
 	}
 
 	//handle authentication
 	token, err := utils.GenerateJWT(user.ID.String())
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Failed to generate token")
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to generate token: %v", err))
 		return
 	}
 
@@ -109,13 +123,13 @@ func (cfg *APIConfig) HandlerLogoutUser(w http.ResponseWriter, r *http.Request, 
 	expiration, err := utils.GetTokenExpiry(tokenString)
 
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Failed to get token expiration")
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to get token expiration: %v", err))
 		return
 	}
 
 	err = cfg.Redis.Set(r.Context(), "blacklist:"+tokenString, "revoked", expiration).Err()
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Failed to blacklist token")
+		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to blacklist token: %v", err))
 		return
 	}
 
