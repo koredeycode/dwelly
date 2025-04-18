@@ -10,7 +10,7 @@ func UserRoutes(apiCfg *handlers.APIConfig) chi.Router {
 
 	r.Get("/{userId}", apiCfg.Auth(apiCfg.HandlerGetUser))
 	r.Patch("/{userId}", apiCfg.Auth(apiCfg.HandlerUpdateUser))
-	// r.Delete("/{userId}", apiCfg.Auth(apiCfg.HandlerDeleteUser))
+	r.Delete("/{userId}", apiCfg.Auth(apiCfg.HandlerDeleteUser))
 
 	// r.Get("/{userId}/listings", apiCfg.Auth(apiCfg.HandlerGetUserListings))
 	return r
