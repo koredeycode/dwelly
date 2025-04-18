@@ -82,7 +82,20 @@ func (cfg *APIConfig) HandlerUpdateUser(w http.ResponseWriter, r *http.Request, 
 }
 
 func (cfg *APIConfig) HandlerDeleteUser(w http.ResponseWriter, r *http.Request, user database.User) {
-	// Delete the user
+	userIDStr := chi.URLParam(r, "userId")
+
+	userID, errMsg := utils.GetUUIDParam(userIDStr, "listing")
+
+	if errMsg != "" {
+		respondWithError(w, http.StatusBadRequest, errMsg)
+		return
+	}
+
+	if user.ID != userID {
+		respondWithError(w, http.StatusForbidden, "user not authorized to update this profile")
+		return
+	}
+
 	err := cfg.DB.DeleteUser(r.Context(), user.ID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error deleting user: %v", err))
