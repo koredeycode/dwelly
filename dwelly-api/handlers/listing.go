@@ -32,12 +32,13 @@ func (cfg *APIConfig) HandlerCreateListing(w http.ResponseWriter, r *http.Reques
 	err := decoder.Decode(&params)
 
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("error parsing json: %v", err))
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload", err.Error())
 		return
 	}
 
 	if err := cfg.Validate.Struct(params); err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
+		errorMessages := utils.ExtractValidationErrors(err)
+		respondWithError(w, http.StatusBadRequest, "Validation failed", errorMessages...)
 		return
 	}
 	listing, err := cfg.DB.CreateListing(r.Context(), database.CreateListingParams{
@@ -57,7 +58,7 @@ func (cfg *APIConfig) HandlerCreateListing(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, models.DatabaseListingToListing(listing))
+	respondWithSuccess(w, http.StatusCreated, "Listing created successfully", models.DatabaseListingToListing(listing))
 
 }
 
@@ -73,11 +74,12 @@ func (cfg *APIConfig) HandlerGetListing(w http.ResponseWriter, r *http.Request) 
 
 	listing, err := cfg.DB.GetListingByID(r.Context(), listingId)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error getting listing: %v", err))
+		respondWithError(w, http.StatusInternalServerError, "Listing retrieval failure", err.Error())
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, models.DatabaseListingToListing(listing))
+	respondWithSuccess(w, http.StatusOK, "Listing retrieved successfully", models.DatabaseListingToListing(listing))
+
 }
 
 func (cfg *APIConfig) HandlerGetListings(w http.ResponseWriter, r *http.Request) {
@@ -87,12 +89,12 @@ func (cfg *APIConfig) HandlerGetListings(w http.ResponseWriter, r *http.Request)
 	})
 
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error getting listings: %v", err))
+		respondWithError(w, http.StatusInternalServerError, "Listings retrieval failure", err.Error())
 		return
 	}
 
 	// Respond with the listings
-	respondWithJSON(w, http.StatusOK, models.DatabaseListingsToListings(listings))
+	respondWithSuccess(w, http.StatusOK, "Listings retrieved successfully", models.DatabaseListingsToListings(listings))
 
 }
 
@@ -110,11 +112,11 @@ func (api *APIConfig) HandlerSearchListings(w http.ResponseWriter, r *http.Reque
 	})
 
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Error fetching listings")
+		respondWithError(w, http.StatusInternalServerError, "Listing retrieval failure", err.Error())
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, models.DatabaseListingsToListings(listings))
+	respondWithSuccess(w, http.StatusOK, "Listings retrieved successfully", models.DatabaseListingsToListings(listings))
 }
 
 func valueOrDefault(oldValue, newValue string) string {
@@ -150,13 +152,13 @@ func (cfg *APIConfig) HandlerUpdateListing(w http.ResponseWriter, r *http.Reques
 	err := decoder.Decode(&params)
 
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Error parsing JSON: %v", err))
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload", err.Error())
 		return
 	}
 
 	currentListing, err := cfg.DB.GetListingByID(r.Context(), listingID)
 	if err != nil {
-		respondWithError(w, http.StatusNotFound, fmt.Sprintf("Listing not found: %v", err))
+		respondWithError(w, http.StatusNotFound, "Listing not found", err.Error())
 		return
 	}
 
@@ -172,11 +174,11 @@ func (cfg *APIConfig) HandlerUpdateListing(w http.ResponseWriter, r *http.Reques
 	})
 
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update listing: %v", err))
+		respondWithError(w, http.StatusInternalServerError, "Listing update failure", err.Error())
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, models.DatabaseListingToListing(listing))
+	respondWithSuccess(w, http.StatusOK, "Listing updated successfully", models.DatabaseListingToListing(listing))
 }
 
 // to do: authorization should be handled, listing owner should be able to delete the listing
@@ -195,10 +197,11 @@ func (cfg *APIConfig) HandlerDeleteListing(w http.ResponseWriter, r *http.Reques
 		UserID: user.ID,
 	})
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error deleting listing: %v", err))
+		respondWithError(w, http.StatusInternalServerError, "Listing deletion failure", err.Error())
 		return
 	}
-	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Listing deleted"})
+	respondWithSuccess(w, http.StatusOK, "Listing deleted successfully", nil)
+
 }
 
 // to do: authorization should be handled, listing owner should be able to update the listing status
@@ -222,12 +225,13 @@ func (cfg *APIConfig) HandlerUpdateListingStatus(w http.ResponseWriter, r *http.
 	err := decoder.Decode(&params)
 
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("error parsing json: %v", err))
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload", err.Error())
 		return
 	}
 
 	if err := cfg.Validate.Struct(params); err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
+		errorMessages := utils.ExtractValidationErrors(err)
+		respondWithError(w, http.StatusBadRequest, "Validation failed", errorMessages...)
 		return
 	}
 
@@ -236,7 +240,7 @@ func (cfg *APIConfig) HandlerUpdateListingStatus(w http.ResponseWriter, r *http.
 	statusNotValid := !slices.Contains(statuses, params.Status)
 
 	if statusNotValid {
-		respondWithError(w, http.StatusBadRequest, "invalid status")
+		respondWithError(w, http.StatusBadRequest, "Invalid status")
 		return
 	}
 
@@ -245,11 +249,12 @@ func (cfg *APIConfig) HandlerUpdateListingStatus(w http.ResponseWriter, r *http.
 		Status: params.Status,
 	})
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error updating listing status: %v", err))
+		respondWithError(w, http.StatusInternalServerError, "Listing status update failure", err.Error())
 		return
 
 	}
-	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Listing status updated"})
+	respondWithSuccess(w, http.StatusOK, "Listing status updated successfully", nil)
+
 }
 
 func (cfg *APIConfig) HandlerUploadListingImages(w http.ResponseWriter, r *http.Request, user database.User) {
@@ -265,22 +270,15 @@ func (cfg *APIConfig) HandlerUploadListingImages(w http.ResponseWriter, r *http.
 	// Get all files uploaded for "file" field (could be multiple)
 	files := r.MultipartForm.File["file"]
 	if len(files) == 0 {
-		http.Error(w, "No files uploaded", http.StatusBadRequest)
+		respondWithError(w, http.StatusBadRequest, "No files uploaded")
 		return
 	}
-
-	// Create Cloudinary client
-	// cld, err := cloudinaryutil.NewClient()
-	// if err != nil {
-	// 	http.Error(w, "Could not create Cloudinary client", http.StatusInternalServerError)
-	// 	return
-	// }
 
 	// Loop through all files and upload them
 	for _, fileHeader := range files {
 		file, err := fileHeader.Open()
 		if err != nil {
-			http.Error(w, "Unable to open uploaded file", http.StatusBadRequest)
+			respondWithError(w, http.StatusBadRequest, "Unable to open uploaded file", err.Error())
 			return
 		}
 		defer file.Close()
@@ -291,16 +289,10 @@ func (cfg *APIConfig) HandlerUploadListingImages(w http.ResponseWriter, r *http.
 			Folder:   "dwelly/listings",
 		})
 		if err != nil {
-			http.Error(w, "Failed to upload to Cloudinary", http.StatusInternalServerError)
+			respondWithError(w, http.StatusInternalServerError, "Failed to upload image", err.Error())
 			return
 		}
 
-		// // Save the image URL to the database
-		// listingID, err := uuid.Parse(chi.URLParam(r, "listingId"))
-		// if err != nil {
-		// 	http.Error(w, "Invalid listing ID", http.StatusBadRequest)
-		// 	return
-		// }
 		imageURL := uploadResp.SecureURL
 		_, err = cfg.DB.AddListingImage(r.Context(), database.AddListingImageParams{
 			ID:        uuid.New(),
@@ -309,10 +301,11 @@ func (cfg *APIConfig) HandlerUploadListingImages(w http.ResponseWriter, r *http.
 		})
 
 		if err != nil {
-			http.Error(w, "Failed to save image URL to database", http.StatusInternalServerError)
+			respondWithError(w, http.StatusInternalServerError, "Failure to save iimage", err.Error())
 			return
 		}
 	}
 
-	respondWithJSON(w, http.StatusCreated, map[string]string{"message": "Listing images added"})
+	respondWithSuccess(w, http.StatusOK, "Listing images added successfully", nil)
+
 }

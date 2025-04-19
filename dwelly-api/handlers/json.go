@@ -2,15 +2,21 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
-type errorResponse struct {
-	Error string `json:"error"`
-}
+func respondWithError(w http.ResponseWriter, code int, message string, errors ...string) {
+	response := map[string]interface{}{
+		"status":  "error",
+		"message": message,
+	}
 
-func respondWithError(w http.ResponseWriter, code int, message string) {
-	respondWithJSON(w, code, errorResponse{Error: message})
+	if len(errors) > 0 {
+		response["errors"] = errors
+	}
+
+	respondWithJSON(w, code, response)
 }
 
 func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
@@ -18,11 +24,29 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	if err != nil {
 		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		errorJSON, _ := json.Marshal(errorResponse{Error: "failed to marshal json response"})
+		errorJSON, _ := json.Marshal(map[string]interface{}{
+			"status":  "error",
+			"message": "failed to marshal json response",
+		})
 		w.Write(errorJSON)
 		return
 	}
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(code)
 	w.Write(dat)
+}
+
+func respondWithSuccess(w http.ResponseWriter, code int, message string, data interface{}) {
+	response := map[string]interface{}{
+		"status":  "success",
+		"message": message,
+	}
+
+	fmt.Println(response)
+
+	if data != nil {
+		response["data"] = data
+	}
+
+	respondWithJSON(w, code, response)
 }

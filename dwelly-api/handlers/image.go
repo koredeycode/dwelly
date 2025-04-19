@@ -2,12 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
+	"github.com/koredeycode/dwelly/dwelly-api/utils"
 	"github.com/koredeycode/dwelly/internal/database"
 )
 
@@ -16,13 +16,13 @@ import (
 func (cfg *APIConfig) HandlerAddListingImage(w http.ResponseWriter, r *http.Request, user database.User) {
 	listingIDStr := chi.URLParam(r, "listingId")
 	if listingIDStr == "" {
-		respondWithError(w, http.StatusBadRequest, "missing listing ID")
+		respondWithError(w, http.StatusBadRequest, "Missing listing ID")
 		return
 	}
 
 	listingId, err := uuid.Parse(listingIDStr)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "invalid listing ID")
+		respondWithError(w, http.StatusBadRequest, "Invalid listing ID", err.Error())
 		return
 	}
 
@@ -36,12 +36,13 @@ func (cfg *APIConfig) HandlerAddListingImage(w http.ResponseWriter, r *http.Requ
 	err = decoder.Decode(&params)
 
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("error parsing json: %v", err))
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload", err.Error())
 		return
 	}
 
 	if err := cfg.Validate.Struct(params); err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
+		errorMessages := utils.ExtractValidationErrors(err)
+		respondWithError(w, http.StatusBadRequest, "Validation failed", errorMessages...)
 		return
 	}
 	_, err = cfg.DB.AddListingImage(r.Context(), database.AddListingImageParams{
@@ -52,10 +53,11 @@ func (cfg *APIConfig) HandlerAddListingImage(w http.ResponseWriter, r *http.Requ
 		Url:       params.ImageURL,
 	})
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error creating listing image: %v", err))
+		respondWithError(w, http.StatusInternalServerError, "Listing image creation failure", err.Error())
 		return
 	}
-	respondWithJSON(w, http.StatusCreated, map[string]string{"message": "image added successfully"})
+	respondWithSuccess(w, http.StatusOK, "Image added successfully", nil)
+
 }
 
 // to do: authorization should be handled, lising owner should be able to delete the image
@@ -64,21 +66,21 @@ func (cfg *APIConfig) HandlerDeleteListingImage(w http.ResponseWriter, r *http.R
 
 	imageIDStr := chi.URLParam(r, "imageId")
 	if imageIDStr == "" {
-		respondWithError(w, http.StatusBadRequest, "imageId is required")
+		respondWithError(w, http.StatusBadRequest, "ImageId is required")
 		return
 	}
 
 	imageId, err := uuid.Parse(listingIDStr)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "invalid image id")
+		respondWithError(w, http.StatusBadRequest, "Invalid image id", err.Error())
 		return
 	}
 
 	err = cfg.DB.DeleteListingImageByID(r.Context(), imageId)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "error deleting listing image")
+		respondWithError(w, http.StatusInternalServerError, "Listing image deletion failure", err.Error())
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Image deleted"})
+	respondWithSuccess(w, http.StatusOK, "Image deleted successfully", nil)
 }

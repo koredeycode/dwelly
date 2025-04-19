@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -36,12 +35,13 @@ func (cfg *APIConfig) HandlerCreateListingInquiry(w http.ResponseWriter, r *http
 	err := decoder.Decode(&params)
 
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("error parsing json: %v", err))
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload", err.Error())
 		return
 	}
 
 	if err := cfg.Validate.Struct(params); err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
+		errorMessages := utils.ExtractValidationErrors(err)
+		respondWithError(w, http.StatusBadRequest, "Validation failed", errorMessages...)
 		return
 	}
 
@@ -55,7 +55,7 @@ func (cfg *APIConfig) HandlerCreateListingInquiry(w http.ResponseWriter, r *http
 	})
 
 	if err != nil {
-		respondWithError(w, http.StatusBadGateway, "error creating inquiry")
+		respondWithError(w, http.StatusInternalServerError, "Inquiry creation failure", err.Error())
 		return
 	}
 
@@ -69,11 +69,11 @@ func (cfg *APIConfig) HandlerCreateListingInquiry(w http.ResponseWriter, r *http
 	})
 
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "error creating message to inquiry")
+		respondWithError(w, http.StatusInternalServerError, "Inquiry message creation failure", err.Error())
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, models.DatabaseInquiryToInquiry(inquiry))
+	respondWithSuccess(w, http.StatusCreated, "Inquiry created successfully", models.DatabaseInquiryToInquiry(inquiry))
 }
 
 // to do: authorization of current user should be handled, sender of inquiry and listing own should be able to see the inquiry
@@ -88,11 +88,11 @@ func (cfg *APIConfig) HandlerGetInquiry(w http.ResponseWriter, r *http.Request, 
 
 	inquiry, err := cfg.DB.GetInquiryByIDWithMessages(r.Context(), inquiryId)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "error getting inquiry")
+		respondWithError(w, http.StatusInternalServerError, "Inquiry retrieval failure", err.Error())
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, models.DatabaseInquiryToInquiry(inquiry))
+	respondWithSuccess(w, http.StatusOK, "Inquiry retrieved successfully", models.DatabaseInquiryToInquiry(inquiry))
 
 }
 
@@ -108,11 +108,11 @@ func (cfg *APIConfig) HandlerGetListingInquiries(w http.ResponseWriter, r *http.
 
 	inquiries, err := cfg.DB.GetListingInquiries(r.Context(), listingId)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "error getting inquiries")
+		respondWithError(w, http.StatusInternalServerError, "Inquiries retrieval failure", err.Error())
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, models.DatabaseInquiriesToInquiries(inquiries))
+	respondWithSuccess(w, http.StatusOK, "Inquiries retrieved successfully", models.DatabaseInquiriesToInquiries(inquiries))
 }
 
 // to do: authorization of current user should be handled, sender of inquiry and listing own should be able to update the inquiry
@@ -134,14 +134,14 @@ func (cfg *APIConfig) HandlerUpdateInquiryStatus(w http.ResponseWriter, r *http.
 	params := parameters{}
 
 	err := decoder.Decode(&params)
-
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("error parsing json: %v", err))
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload", err.Error())
 		return
 	}
 
 	if err := cfg.Validate.Struct(params); err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
+		errorMessages := utils.ExtractValidationErrors(err)
+		respondWithError(w, http.StatusBadRequest, "Validation failed", errorMessages...)
 		return
 	}
 	statuses := []string{"active", "negotiation", "completed"}
@@ -149,7 +149,7 @@ func (cfg *APIConfig) HandlerUpdateInquiryStatus(w http.ResponseWriter, r *http.
 	statusNotValid := !slices.Contains(statuses, params.Status)
 
 	if statusNotValid {
-		respondWithError(w, http.StatusBadRequest, "invalid status")
+		respondWithError(w, http.StatusBadRequest, "Invalid status")
 		return
 	}
 
@@ -158,11 +158,12 @@ func (cfg *APIConfig) HandlerUpdateInquiryStatus(w http.ResponseWriter, r *http.
 		Status: params.Status,
 	})
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error updating inquiry status: %v", err))
+		respondWithError(w, http.StatusInternalServerError, "Inquiry update failure", err.Error())
 		return
 
 	}
-	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Inquiry status updated"})
+	respondWithSuccess(w, http.StatusOK, "Inquiry status updated successfully", nil)
+
 }
 
 // to do: authorization of current user should be handled, sender of inquiry and listing own should be able to delete the inquiry
@@ -181,11 +182,10 @@ func (cfg *APIConfig) HandlerDeleteInquiry(w http.ResponseWriter, r *http.Reques
 		SenderID: user.ID,
 	})
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "error deleting inquiry")
+		respondWithError(w, http.StatusInternalServerError, "Inquiry deletion failure", err.Error())
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, map[string]string{
-		"message": "Inquiry deleted",
-	})
+	respondWithSuccess(w, http.StatusOK, "Inquiry deleted successfully", nil)
+
 }

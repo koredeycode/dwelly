@@ -10,6 +10,6 @@ func AuthRoutes(apiCfg *handlers.APIConfig) chi.Router {
 	r.Post("/register", apiCfg.HandlerRegisterUser)
 	r.Post("/login", apiCfg.HandlerLoginUser)
 	r.Post("/logout", apiCfg.Auth(apiCfg.HandlerLogoutUser))
-	r.Get("/me", apiCfg.Auth(apiCfg.HandlerGetUser))
+	r.Get("/me", apiCfg.Auth(apiCfg.HandlerGetCurrentUser))
 	return r
 }

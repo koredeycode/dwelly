@@ -25,18 +25,23 @@ func (cfg *APIConfig) HandlerRegisterUser(w http.ResponseWriter, r *http.Request
 	params := parameters{}
 	err := decoder.Decode(&params)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Invalid request payload: %v", err))
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload", err.Error())
 		return
 	}
 
+	// if err := cfg.Validate.Struct(params); err != nil {
+	// 	respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
+	// 	return
+	// }
 	if err := cfg.Validate.Struct(params); err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
+		errorMessages := utils.ExtractValidationErrors(err)
+		respondWithError(w, http.StatusBadRequest, "Validation failed", errorMessages...)
 		return
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(params.Password), bcrypt.DefaultCost)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Could not hash password: %v", err))
+		respondWithError(w, http.StatusBadRequest, "Password hashing failure", err.Error())
 		return
 	}
 
@@ -51,10 +56,11 @@ func (cfg *APIConfig) HandlerRegisterUser(w http.ResponseWriter, r *http.Request
 	})
 
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Could not create user: %v", err))
+		respondWithError(w, http.StatusBadRequest, "User creation failed", err.Error())
 		return
 	}
-	respondWithJSON(w, http.StatusCreated, models.DatabaseUserToUser(user))
+
+	respondWithSuccess(w, http.StatusCreated, "User created successfully", models.DatabaseUserToUser(user))
 }
 
 // Handle user logging in
@@ -68,31 +74,32 @@ func (cfg *APIConfig) HandlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	params := parameters{}
 	err := decoder.Decode(&params)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Invalid request payload: %v", err))
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload", err.Error())
 		return
 	}
 
 	if err := cfg.Validate.Struct(params); err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
+		errorMessages := utils.ExtractValidationErrors(err)
+		respondWithError(w, http.StatusBadRequest, "Validation failed", errorMessages...)
 		return
 	}
 
 	user, err := cfg.DB.GetUserByEmail(r.Context(), params.Email)
 	if err != nil {
-		respondWithError(w, http.StatusForbidden, fmt.Sprintf("User email doesn't exist: %v", err))
+		respondWithError(w, http.StatusForbidden, "User email not found", err.Error())
 		return
 	}
 
 	_, err = bcrypt.GenerateFromPassword([]byte(params.Password), bcrypt.DefaultCost)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Could not hash password: %v", err))
+		respondWithError(w, http.StatusInternalServerError, "Password hashing failure", err.Error())
 		return
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(params.Password))
 
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, fmt.Sprintf("Invalid password: %v", err))
+		respondWithError(w, http.StatusUnauthorized, "Inavalid pawword", err.Error())
 		return
 	}
 
@@ -110,41 +117,43 @@ func (cfg *APIConfig) HandlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	//handle authentication
 	token, err := utils.GenerateJWT(user.ID.String())
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to generate token: %v", err))
+		respondWithError(w, http.StatusInternalServerError, "Token generation failure", err.Error())
 		return
 	}
 
 	err = cfg.Redis.Set(r.Context(), redisKey, token, 72*time.Hour).Err()
 
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to store token in Redis: %v", err))
+		respondWithError(w, http.StatusInternalServerError, "Unable to save token", err.Error())
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, map[string]interface{}{
-		// "user":  models.DatabaseUsertoUser(user),
+	// "user":  models.DatabaseUsertoUser(user),
+	respondWithSuccess(w, http.StatusOK, "User logged in successfully", map[string]interface{}{
 		"token": token,
 	})
 
-	// respondWithJSON(w, http.StatusOK, models.DatabaseUsertoUser(user))
+}
 
+func (cfg *APIConfig) HandlerGetCurrentUser(w http.ResponseWriter, r *http.Request, user database.User) {
+	respondWithSuccess(w, http.StatusOK, "Current user retrieved successfully", models.DatabaseUserToUser(user))
 }
 
 func (cfg *APIConfig) HandlerLogoutUser(w http.ResponseWriter, r *http.Request, user database.User) {
-	tokenString := r.Context().Value("token").(string)
+	tokenString := r.Context().Value(TokenContextKey).(string)
 
 	expiration, err := utils.GetTokenExpiry(tokenString)
 
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to get token expiration: %v", err))
+		respondWithError(w, http.StatusInternalServerError, "Unable to get token expiration", err.Error())
 		return
 	}
 
 	err = cfg.Redis.Set(r.Context(), "dwelly_blacklisted_token:"+tokenString, "revoked", expiration).Err()
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to blacklist token: %v", err))
+		respondWithError(w, http.StatusInternalServerError, "Blacklisting token failure", err.Error())
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Logged out successfully"})
+	respondWithSuccess(w, http.StatusOK, "Logged out successfully", nil)
 }

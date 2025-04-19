@@ -5,7 +5,8 @@ import (
 )
 
 func (cfg *APIConfig) HandlerAPIStatus(w http.ResponseWriter, r *http.Request) {
-	respondWithJSON(w, http.StatusOK, map[string]string{
+	respondWithSuccess(w, http.StatusOK, "API running", map[string]string{
 		"status": "ok",
 	})
+
 }

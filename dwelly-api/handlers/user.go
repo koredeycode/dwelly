@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -13,19 +12,40 @@ import (
 )
 
 func (cfg *APIConfig) HandlerGetUser(w http.ResponseWriter, r *http.Request, user database.User) {
-	respondWithJSON(w, http.StatusOK, models.DatabaseUserToUser(user))
+	userIDStr := chi.URLParam(r, "userId")
+
+	userID, errMsg := utils.GetUUIDParam(userIDStr, "user")
+
+	if errMsg != "" {
+		respondWithError(w, http.StatusBadRequest, errMsg)
+		return
+	}
+
+	if user.ID == userID {
+		respondWithSuccess(w, http.StatusOK, "User retrieved successfully", models.DatabaseUserToUser(user))
+		return
+	}
+	queriedUser, err := cfg.DB.GetUserByID(r.Context(), userID)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "User retrieval failure", err.Error())
+		return
+	}
+
+	respondWithSuccess(w, http.StatusOK, "User retrieved successfully", models.DatabaseUserToUser(queriedUser))
 }
 
 func (cfg *APIConfig) HandlerGetUserListings(w http.ResponseWriter, r *http.Request, user database.User) {
 	user_listings, err := cfg.DB.ListUserListings(r.Context(), user.ID)
 
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error getting listings: %v", err))
+		respondWithError(w, http.StatusInternalServerError, "User's listing retrieval error", err.Error())
 		return
 	}
 
 	// Respond with the listings
-	respondWithJSON(w, http.StatusOK, models.DatabaseListingsToListings(user_listings))
+	respondWithSuccess(w, http.StatusOK, "User's listing retrieved successfully", models.DatabaseListingsToListings(user_listings))
+
 }
 
 func (cfg *APIConfig) HandlerUpdateUser(w http.ResponseWriter, r *http.Request, user database.User) {
@@ -40,7 +60,7 @@ func (cfg *APIConfig) HandlerUpdateUser(w http.ResponseWriter, r *http.Request, 
 	}
 
 	if user.ID != userID {
-		respondWithError(w, http.StatusForbidden, "user not authorized to update this profile")
+		respondWithError(w, http.StatusForbidden, "User not authorized")
 		return
 	}
 	type parameters struct {
@@ -56,13 +76,13 @@ func (cfg *APIConfig) HandlerUpdateUser(w http.ResponseWriter, r *http.Request, 
 	err := decoder.Decode(&params)
 
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Error parsing JSON: %v", err))
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload", err.Error())
 		return
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(params.Password), bcrypt.DefaultCost)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Could not hash password: %v", err))
+		respondWithError(w, http.StatusInternalServerError, "Password hashing error", err.Error())
 		return
 	}
 
@@ -74,11 +94,11 @@ func (cfg *APIConfig) HandlerUpdateUser(w http.ResponseWriter, r *http.Request, 
 		PasswordHash: valueOrDefault(user.PasswordHash, string(hash)),
 	})
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update user: %v", err))
+		respondWithError(w, http.StatusInternalServerError, "User update failure", err.Error())
 		return
 	}
 	// Respond with the updated user
-	respondWithJSON(w, http.StatusOK, models.DatabaseUserToUser(newUser))
+	respondWithSuccess(w, http.StatusOK, "User updated successfully", models.DatabaseUserToUser(newUser))
 }
 
 func (cfg *APIConfig) HandlerDeleteUser(w http.ResponseWriter, r *http.Request, user database.User) {
@@ -92,16 +112,17 @@ func (cfg *APIConfig) HandlerDeleteUser(w http.ResponseWriter, r *http.Request, 
 	}
 
 	if user.ID != userID {
-		respondWithError(w, http.StatusForbidden, "user not authorized to update this profile")
+		respondWithError(w, http.StatusForbidden, "User not authorized")
 		return
 	}
 
 	err := cfg.DB.DeleteUser(r.Context(), user.ID)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error deleting user: %v", err))
+		respondWithError(w, http.StatusInternalServerError, "User deletion failure", err.Error())
 		return
 	}
 
 	// Respond with a success message
-	respondWithJSON(w, http.StatusOK, map[string]string{"message": "user deleted"})
+	respondWithSuccess(w, http.StatusOK, "User deleted successfully", nil)
+
 }

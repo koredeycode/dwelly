@@ -54,14 +54,27 @@ func (cfg *APIConfig) AuthenticationMiddleware(handler authHandler) http.Handler
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 			return []byte(os.Getenv("JWT_SECRET")), nil
 		})
+
 		if err != nil || !token.Valid {
-			respondWithError(w, http.StatusUnauthorized, "Invalid or expired token")
+			respondWithError(w, http.StatusUnauthorized, "Invalid token")
+			return
+		}
+
+		expiration, err := utils.GetTokenExpiry(tokenString)
+
+		if expiration <= 0 {
+			respondWithError(w, http.StatusUnauthorized, "Token has expired")
+			return
+		}
+
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to get token expiration: %v", err))
 			return
 		}
 
 		userID, ok := claims["user_id"].(string)
 		if !ok {
-			respondWithError(w, http.StatusUnauthorized, "Invalid token claims")
+			respondWithError(w, http.StatusUnauthorized, "Invalid token, user ID not found in the token")
 			return
 		}
 
@@ -76,6 +89,8 @@ func (cfg *APIConfig) AuthenticationMiddleware(handler authHandler) http.Handler
 			respondWithError(w, http.StatusUnauthorized, "User not found")
 			return
 		}
+
+		fmt.Println(tokenString)
 
 		ctx := context.WithValue(r.Context(), TokenContextKey, tokenString)
 

@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -32,12 +31,13 @@ func (cfg *APIConfig) HandlerCreateInquiryMessage(w http.ResponseWriter, r *http
 	err := decoder.Decode(&params)
 
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "error parsing json")
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload", err.Error())
 		return
 	}
 
 	if err := cfg.Validate.Struct(params); err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
+		errorMessages := utils.ExtractValidationErrors(err)
+		respondWithError(w, http.StatusBadRequest, "Validation failed", errorMessages...)
 		return
 	}
 	message, err := cfg.DB.CreateMessage(r.Context(), database.CreateMessageParams{
@@ -49,11 +49,10 @@ func (cfg *APIConfig) HandlerCreateInquiryMessage(w http.ResponseWriter, r *http
 		UpdatedAt: time.Now().UTC(),
 	})
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "error creating message to inquiry")
+		respondWithError(w, http.StatusInternalServerError, "Inquiry message creation failure", err.Error())
 		return
 	}
-	respondWithJSON(w, http.StatusOK, models.DatabaseMessageToMessage(message))
-
+	respondWithSuccess(w, http.StatusCreated, "Message created successfully", models.DatabaseMessageToMessage(message))
 }
 
 // to do: authorization should be handled, inquiry owner should be able to get the messages and listing owner tied to the inquiry
@@ -67,10 +66,10 @@ func (cfg *APIConfig) HandlerGetInquiryMessages(w http.ResponseWriter, r *http.R
 	}
 	messages, err := cfg.DB.GetMessagesByInquiry(r.Context(), inquiryId)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "error getting inquiry messages")
+		respondWithError(w, http.StatusInternalServerError, "Inquiry messages retrieval failure", err.Error())
 		return
 	}
-	respondWithJSON(w, http.StatusOK, models.DatabaseMessagesToMessages(messages))
+	respondWithSuccess(w, http.StatusOK, "Message retrieved successfullly", models.DatabaseMessagesToMessages(messages))
 }
 
 func (cfg *APIConfig) HandlerUpdateMessage(w http.ResponseWriter, r *http.Request, user database.User) {
@@ -91,14 +90,14 @@ func (cfg *APIConfig) HandlerUpdateMessage(w http.ResponseWriter, r *http.Reques
 	params := parameters{}
 
 	err := decoder.Decode(&params)
-
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "error parsing json")
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload", err.Error())
 		return
 	}
 
 	if err := cfg.Validate.Struct(params); err != nil {
-		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Validation error: %v", err))
+		errorMessages := utils.ExtractValidationErrors(err)
+		respondWithError(w, http.StatusBadRequest, "Validation failed", errorMessages...)
 		return
 	}
 	message, err := cfg.DB.UpdateMessage(r.Context(), database.UpdateMessageParams{
@@ -107,10 +106,11 @@ func (cfg *APIConfig) HandlerUpdateMessage(w http.ResponseWriter, r *http.Reques
 		UpdatedAt: time.Now().UTC(),
 	})
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "error updating inquiry message")
+		respondWithError(w, http.StatusInternalServerError, "Inquiry message update failure", err.Error())
 		return
 	}
-	respondWithJSON(w, http.StatusOK, models.DatabaseMessageToMessage(message))
+	respondWithSuccess(w, http.StatusOK, "Message updated successfully", models.DatabaseMessageToMessage(message))
+
 }
 
 // to do: authorization should be handled, sender of mssage should be able to delete the message
@@ -127,8 +127,9 @@ func (cfg *APIConfig) HandlerDeleteMessage(w http.ResponseWriter, r *http.Reques
 		ID: messageId,
 	})
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "error deleting inquiry message")
+		respondWithError(w, http.StatusInternalServerError, "Inquiry message deletion failure", err.Error())
 		return
 	}
-	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Message deleted"})
+	respondWithSuccess(w, http.StatusCreated, "Message deleted successfully", nil)
+
 }
