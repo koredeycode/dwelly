@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 )
 
@@ -41,8 +40,6 @@ func respondWithSuccess(w http.ResponseWriter, code int, message string, data in
 		"status":  "success",
 		"message": message,
 	}
-
-	fmt.Println(response)
 
 	if data != nil {
 		response["data"] = data

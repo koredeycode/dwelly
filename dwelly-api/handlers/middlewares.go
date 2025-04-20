@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -33,8 +32,12 @@ func (cfg *APIConfig) Auth(finalHandler authHandler, middlewares ...func(authHan
 func (cfg *APIConfig) AuthenticationMiddleware(handler authHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-			respondWithError(w, http.StatusUnauthorized, "Missing or invalid Authorization header")
+		if authHeader == "" {
+			respondWithError(w, http.StatusUnauthorized, "Missing authorization header")
+			return
+		}
+		if !strings.HasPrefix(authHeader, "Bearer ") {
+			respondWithError(w, http.StatusUnauthorized, "Invalid authorization header")
 			return
 		}
 
@@ -42,7 +45,7 @@ func (cfg *APIConfig) AuthenticationMiddleware(handler authHandler) http.Handler
 
 		isBlacklisted, err := cfg.Redis.Exists(r.Context(), "dwelly_blacklisted_token:"+tokenString).Result()
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, "Redis error")
+			respondWithError(w, http.StatusInternalServerError, "Token retrival errror", err.Error())
 			return
 		}
 		if isBlacklisted == 1 {
@@ -56,7 +59,7 @@ func (cfg *APIConfig) AuthenticationMiddleware(handler authHandler) http.Handler
 		})
 
 		if err != nil || !token.Valid {
-			respondWithError(w, http.StatusUnauthorized, "Invalid token")
+			respondWithError(w, http.StatusUnauthorized, "Invalid token", err.Error())
 			return
 		}
 
@@ -68,7 +71,7 @@ func (cfg *APIConfig) AuthenticationMiddleware(handler authHandler) http.Handler
 		}
 
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to get token expiration: %v", err))
+			respondWithError(w, http.StatusInternalServerError, "Token expiration failure", err.Error())
 			return
 		}
 
@@ -80,17 +83,15 @@ func (cfg *APIConfig) AuthenticationMiddleware(handler authHandler) http.Handler
 
 		userUUID, err := uuid.Parse(userID)
 		if err != nil {
-			respondWithError(w, http.StatusBadRequest, "Invalid user ID in token")
+			respondWithError(w, http.StatusBadRequest, "Invalid user ID in token", err.Error())
 			return
 		}
 
 		user, err := cfg.DB.GetUserByID(r.Context(), userUUID)
 		if err != nil {
-			respondWithError(w, http.StatusUnauthorized, "User not found")
+			respondWithError(w, http.StatusUnauthorized, "User not found", err.Error())
 			return
 		}
-
-		fmt.Println(tokenString)
 
 		ctx := context.WithValue(r.Context(), TokenContextKey, tokenString)
 
@@ -110,11 +111,11 @@ func (cfg *APIConfig) ListingOwnerAuthorization(handler authHandler) authHandler
 		}
 		listing, err := cfg.DB.GetListingByID(r.Context(), listingID)
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking listing owner: %v", err))
+			respondWithError(w, http.StatusInternalServerError, "Error checking listing owner", err.Error())
 			return
 		}
 		if listing.UserID != user.ID {
-			respondWithError(w, http.StatusForbidden, "user is not the owner of the listing")
+			respondWithError(w, http.StatusForbidden, "User is not the owner of the listing")
 			return
 		}
 
@@ -134,11 +135,11 @@ func (cfg *APIConfig) InquirySenderAuthorization(handler authHandler) authHandle
 		}
 		inquiry, err := cfg.DB.GetInquiryById(r.Context(), inquiryID)
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking inquiry owner: %v", err))
+			respondWithError(w, http.StatusInternalServerError, "error checking inquiry owner", err.Error())
 			return
 		}
 		if inquiry.SenderID != user.ID {
-			respondWithError(w, http.StatusForbidden, "user is not the sender of the inquiry")
+			respondWithError(w, http.StatusForbidden, "User is not the sender of the inquiry")
 			return
 		}
 
@@ -158,11 +159,11 @@ func (cfg *APIConfig) MessageSenderAuthorization(handler authHandler) authHandle
 		}
 		message, err := cfg.DB.GetMessage(r.Context(), messageID)
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking message owner: %v", err))
+			respondWithError(w, http.StatusInternalServerError, "Error checking message owner", err.Error())
 			return
 		}
 		if message.SenderID != user.ID {
-			respondWithError(w, http.StatusForbidden, "user is not the sender of the message")
+			respondWithError(w, http.StatusForbidden, "User is not the sender of the message")
 			return
 		}
 
@@ -183,7 +184,7 @@ func (cfg *APIConfig) InquirySenderOrListingOwnerAuthorization(handler authHandl
 
 		inquiry, err := cfg.DB.GetInquiryById(r.Context(), inquiryID)
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking inquiry owner: %v", err))
+			respondWithError(w, http.StatusInternalServerError, "error checking inquiry owner", err.Error())
 			return
 		}
 
@@ -195,16 +196,15 @@ func (cfg *APIConfig) InquirySenderOrListingOwnerAuthorization(handler authHandl
 
 		listing, err := cfg.DB.GetListingByID(r.Context(), inquiry.ListingID)
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("error checking listing owner: %v", err))
+			respondWithError(w, http.StatusInternalServerError, "Error checking listing owner", err.Error())
 			return
 		}
 
-		if listing.UserID == user.ID {
-			handler(w, r, user)
+		if listing.UserID != user.ID {
+			respondWithError(w, http.StatusForbidden, "user is neither the inquiry sender nor the listing owner")
 			return
 		}
 
-		// If neither condition is met, deny access
-		respondWithError(w, http.StatusForbidden, "user is neither the inquiry sender nor the listing owner")
+		handler(w, r, user)
 	}
 }

@@ -99,7 +99,7 @@ func (cfg *APIConfig) HandlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(params.Password))
 
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Inavalid pawword", err.Error())
+		respondWithError(w, http.StatusUnauthorized, "Invalid password", err.Error())
 		return
 	}
 
@@ -107,8 +107,19 @@ func (cfg *APIConfig) HandlerLoginUser(w http.ResponseWriter, r *http.Request) {
 
 	existingToken, err := cfg.Redis.Get(r.Context(), redisKey).Result()
 
-	if err == nil && existingToken != "" {
-		respondWithJSON(w, http.StatusOK, map[string]interface{}{
+	isBlacklisted, err2 := cfg.Redis.Exists(r.Context(), "dwelly_blacklisted_token:"+existingToken).Result()
+	if err2 != nil {
+		respondWithError(w, http.StatusInternalServerError, "Token retrival errror", err.Error())
+		return
+	}
+
+	// if isBlacklisted == 1 {
+	// 	respondWithError(w, http.StatusUnauthorized, "Token has been revoked")
+	// 	return
+	// }
+
+	if err == nil && existingToken != "" && isBlacklisted != 1 {
+		respondWithSuccess(w, http.StatusOK, "User logged in successfully", map[string]interface{}{
 			"token": existingToken,
 		})
 		return
@@ -129,6 +140,7 @@ func (cfg *APIConfig) HandlerLoginUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// "user":  models.DatabaseUsertoUser(user),
+
 	respondWithSuccess(w, http.StatusOK, "User logged in successfully", map[string]interface{}{
 		"token": token,
 	})
@@ -152,6 +164,12 @@ func (cfg *APIConfig) HandlerLogoutUser(w http.ResponseWriter, r *http.Request, 
 	err = cfg.Redis.Set(r.Context(), "dwelly_blacklisted_token:"+tokenString, "revoked", expiration).Err()
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Blacklisting token failure", err.Error())
+		return
+	}
+
+	redisKey := fmt.Sprintf("dwelly-user-token:%s", user.ID.String())
+	if err := cfg.Redis.Del(r.Context(), redisKey).Err(); err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to delete token from Redis", err.Error())
 		return
 	}
 
